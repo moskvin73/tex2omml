@@ -1,4 +1,4 @@
-import { texToMathML, texToOMML } from './parser.js?v=5';
+import { texToMathML, texToOMML } from './parser.js?v=6';
 
 let currentOMML = "";
 
@@ -18,6 +18,19 @@ async function handleCopyWord() {
         alert("Сначала сгенерируйте формулу!");
         return;
     }
+
+    // Модифицируем OMML код строго под требования буфера обмена Word 2010.
+    // Находим все теги <m:t>Текст</m:t> и внедряем в них инлайн-курсив и шрифт Cambria Math.
+    // Исключаем из курсива знаки плюс, минус, равно и цифры, чтобы они оставались прямыми!
+    const richOMML = currentOMML.replace(/<m:t>([\s\S]*?)<\/m:t>/g, (match, text) => {
+        const trimmed = text.trim();
+        // Если это оператор или цифра — оставляем шрифт Cambria Math, но БЕЗ курсива
+        if (['+', '-', '=', '*', '/', '(', ')'].includes(trimmed) || /^[0-9]+$/.test(trimmed)) {
+            return `<m:t><span style='font-family:"Cambria Math","serif";font-size:12.0pt;'>${text}</span></m:t>`;
+        }
+        // Для всех остальных латинских букв и переменных включаем принудительный курсив через <i> и тег span
+        return `<m:t><i style='mso-bidi-font-style:normal'><span style='font-family:"Cambria Math","serif";font-size:12.0pt;font-style:italic;'>${text}</span></i></m:t>`;
+    });
 
     // Добавляем глобальные стили для Word: Cambria Math, курсив, размер 12pt
     const htmlPayload = `
