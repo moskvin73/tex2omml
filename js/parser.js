@@ -118,13 +118,7 @@ function renderOMML(nodes) {
     return nodes.map(node => {
         // ОБНОВЛЕНО: Разделяем переменные (курсив) и обычные знаки/цифры (прямой шрифт)
         if (node.type === 'TextNode' || node.type === 'GreekNode') {
-            const val = node.value;
-            // Если это одиночная латинская буква (переменная), включаем для Word математический стиль
-            if (/^[A-Za-z]$/.test(val)) {
-                return `<m:r><m:rPr><m:sty m:val="p"/></m:rPr><m:t>${val}</m:t></m:r>`;
-            }
-            // Для цифр, операторов и греческих букв оставляем стандартный вид
-            return `<m:r><m:t>${val}</m:t></m:r>`;
+           return `<m:r><m:t>${node.value}</m:t></m:r>`;
         }
         
         if (node.type === 'GroupNode') return renderOMML(node.body);
