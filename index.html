@@ -4,19 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GitHub TeX Converter</title>
-    <link rel="stylesheet" href="./css/style.css">
+    <!-- Заглушка, чтобы браузер не ругался на отсутствие favicon.ico -->
     <link rel="icon" href="data:,">
+    <!-- Путь к стилям в подкаталоге css -->
+    <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
     <main class="container">
         <h2>TeX → MathML & Word 2010 Конвертер</h2>
         <p class="subtitle">Работает на чистом JavaScript через GitHub Pages</p>
         
-        <textarea id="texInput" placeholder="Введите TeX формулу...">\frac{x^2 - 1}{y_1} + \sqrt{z}</textarea>
+        <textarea id="texInput" placeholder="Введите TeX формулу...">\frac{a}{b}</textarea>
         
         <div class="actions">
             <button id="btnConvert" class="btn-primary">Конвертировать</button>
-            <button id="btnDownload" class="btn-word">Скачать для Word 2010 (.xml)</button>
+            <!-- Новая кнопка для мгновенной вставки через Ctrl+V -->
+            <button id="btnCopyWord" class="btn-copy" style="background-color: #217346; color: white;">Скопировать для Word (Ctrl+V)</button>
+            <button id="btnDownload" class="btn-word">Скачать XML (.xml)</button>
         </div>
 
         <section class="result-box">
@@ -36,7 +40,7 @@
         </div>
     </main>
 
-    <!-- Подключаем логику как модули -->
+    <!-- Правильный путь к app.js в подкаталоге js -->
     <script type="module" src="./js/app.js"></script>
 </body>
 </html>
