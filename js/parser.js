@@ -139,7 +139,7 @@ function renderOMML(nodes) {
 export function texToMathML(tex) {
     try {
         const tokens = tokenize(tex); const parser = new TeXParser(tokens); const ast = parser.parse();
-        return `<math xmlns="http://w3.org" display="block">${renderMathML(ast)}</math>`;
+        return `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">${renderMathML(ast)}</math>`;
     } catch (e) { return `<span style="color:red;">Ошибка MathML: ${e.message}</span>`; }
 }
 
