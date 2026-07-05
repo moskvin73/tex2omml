@@ -6,7 +6,7 @@ function handleConvert() {
     const tex = document.getElementById('texInput').value;
     
     const mathML = texToMathML(tex);
-    currentOMML = texToOMML(tex);
+    currentOMML = texToOMML(tex); 
     
     document.getElementById('mathMLPreview').innerHTML = mathML;
     document.getElementById('mathMLCode').textContent = mathML;
