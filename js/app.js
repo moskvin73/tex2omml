@@ -13,46 +13,13 @@ function handleConvert() {
     document.getElementById('ommlCode').textContent = currentOMML;
 }
 
-function handleDownload() {
-    if (!currentOMML) {
-        alert("Сначала сгенерируйте формулу!");
-        return;
-    }
-
-    const wordXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<?mso-application progid="Word.Document"?>
-<w:wordDocument xmlns:w="http://microsoft.com" xmlns:m="http://openxmlformats.org" xml:space="preserve">
-    <w:body>
-        <w:p><w:r><w:t>Формула, созданная на GitHub Pages:</w:t></w:r></w:p>
-        <w:p>${currentOMML}</w:p>
-    </w:body>
-</w:wordDocument>`;
-
-    const blob = new Blob([wordXml], { type: "application/msword" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "github_formula.xml";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-// Привязываем события к кнопкам после загрузки DOM
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('btnConvert').addEventListener('click', handleConvert);
-    document.getElementById('btnDownload').addEventListener('click', handleDownload);
-    handleConvert(); // Первичный запуск
-});
-
 async function handleCopyWord() {
     if (!currentOMML) {
         alert("Сначала сгенерируйте формулу!");
         return;
     }
 
-    // Собираем минимальный работающий шаблон на основе вашего дампа Word 14
+    // Шаблон на основе вашего дампа Word 14
     const htmlPayload = `
 <html xmlns:o="urn:schemas-microsoft-com:office:office"
 xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -95,3 +62,38 @@ xmlns="http://www.w3.org/TR/REC-html40">
         alert("Кликните по странице и попробуйте еще раз (требуется фокус пользователя).");
     }
 }
+
+function handleDownload() {
+    if (!currentOMML) {
+        alert("Сначала сгенерируйте формулу!");
+        return;
+    }
+
+    const wordXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?mso-application progid="Word.Document"?>
+<w:wordDocument xmlns:w="http://microsoft.com" xmlns:m="http://openxmlformats.org" xml:space="preserve">
+    <w:body>
+        <w:p><w:r><w:t>Формула, созданная на GitHub Pages:</w:t></w:r></w:p>
+        <w:p>${currentOMML}</w:p>
+    </w:body>
+</w:wordDocument>`;
+
+    const blob = new Blob([wordXml], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "github_formula.xml";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Привязываем события к кнопкам после загрузки DOM
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btnConvert').addEventListener('click', handleConvert);
+    // ИСПРАВЛЕНО: Теперь событие клика привязано к кнопке копирования
+    document.getElementById('btnCopyWord').addEventListener('click', handleCopyWord);
+    document.getElementById('btnDownload').addEventListener('click', handleDownload);
+    handleConvert(); // Первичный запуск
+});
