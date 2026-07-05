@@ -200,7 +200,7 @@ class TeXParser {
 }
 
 // 3. ГЕНЕРАТОРЫ КОДА (ОБХОД СИНТАКСИЧЕСКОГО ДЕРЕВА)
-function renderMathML(nodes) {
+export function renderMathML(nodes) {
     if (!nodes) return '';
     return nodes.map(node => {
         if (node.type === 'TextNode') {
@@ -227,7 +227,7 @@ function renderMathML(nodes) {
     }).join('');
 }
 
-function renderOMML(nodes) {
+export function renderOMML(nodes) {
     if (!nodes) return '';
     return nodes.map(node => {
         // Простые символы и операторы
