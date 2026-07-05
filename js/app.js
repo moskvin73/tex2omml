@@ -1,4 +1,4 @@
-import { texToMathML, texToOMML } from './parser.js?v=6';
+import { texToMathML, texToOMML } from './parser.js?v=7';
 
 let currentOMML = "";
 
@@ -19,18 +19,40 @@ async function handleCopyWord() {
         return;
     }
 
+        // Получаем выбранный пользователем режим (block или inline)
+    const selectedMode = document.querySelector('input[name="mathMode"]:checked').value;
+
     // Модифицируем OMML код строго под требования буфера обмена Word 2010.
     // Находим все теги <m:t>Текст</m:t> и внедряем в них инлайн-курсив и шрифт Cambria Math.
     // Исключаем из курсива знаки плюс, минус, равно и цифры, чтобы они оставались прямыми!
-    const richOMML = currentOMML.replace(/<m:t>([\s\S]*?)<\/m:t>/g, (match, text) => {
+     const richOMML = currentOMML.replace(/<m:t>([\s\S]*?)<\/m:t>/g, (match, text) => {
         const trimmed = text.trim();
-        // Если это оператор или цифра — оставляем шрифт Cambria Math, но БЕЗ курсива
+        // Цифры и операторы остаются прямыми
         if (['+', '-', '=', '*', '/', '(', ')'].includes(trimmed) || /^[0-9]+$/.test(trimmed)) {
-            return `<m:t><span style='font-family:"Cambria Math","serif";font-size:12.0pt;'>${text}</span></m:t>`;
+            return `<m:t><span style='font-size:12.0pt;font-family:"Cambria Math","serif";'>${text}</span></m:t>`;
         }
-        // Для всех остальных латинских букв и переменных включаем принудительный курсив через <i> и тег span
-        return `<m:t><i style='mso-bidi-font-style:normal'><span style='font-family:"Cambria Math","serif";font-size:12.0pt;font-style:italic;'>${text}</span></i></m:t>`;
+        // Латинские переменные оборачиваем строго как в вашем дампе
+        return `<m:t><i><span style='font-size:12.0pt;font-family:"Cambria Math","serif";mso-fareast-font-family:"Times New Roman";mso-bidi-font-family:"Times New Roman";'>${text}</span></i></m:t>`;
     });
+
+    // Формируем тело документа в зависимости от режима
+    let formulaPayload = "";
+    if (selectedMode === "block") {
+        // Блочный режим: используем m:oMathPara с выравниванием по центру
+        formulaPayload = `
+        <m:oMathPara>
+            <m:oMathParaPr><m:jc m:val="centerGroup"/></m:oMathParaPr>
+            ${richOMML}
+        </m:oMathPara>`;
+    } else {
+        // Встроенный режим (Inline): m:oMathPara ЗАПРЕЩЕН, пишем прямо в текстовый абзац MsoNormal
+        formulaPayload = `
+        <p class="MsoNormal">
+            <span style='font-size:11.0pt;font-family:"Calibri","sans-serif";'>Текст перед формулой </span>
+            ${richOMML}
+            <span style='font-size:11.0pt;font-family:"Calibri","sans-serif";'> текст после формулы.</span>
+        </p>`;
+    }    
 
     // Добавляем глобальные стили для Word: Cambria Math, курсив, размер 12pt
     const htmlPayload = `

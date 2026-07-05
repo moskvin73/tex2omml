@@ -14,6 +14,14 @@
         <h2>TeX → MathML & Word 2010 Конвертер</h2>
         <p class="subtitle">Работает на чистом JavaScript через GitHub Pages</p>
         
+        <div class="mode-selector" style="margin-bottom: 15px; display: flex; gap: 20px; font-weight: 600;">
+            <label style="cursor: pointer;">
+                <input type="radio" name="mathMode" value="block" checked style="cursor: pointer;"> Блочный (Отдельная строка)
+            </label>
+            <label style="cursor: pointer;">
+                <input type="radio" name="mathMode" value="inline" style="cursor: pointer;"> Встроенный (Внутри текста)
+            </label>
+        </div>        
         <textarea id="texInput" placeholder="Введите TeX формулу...">\frac{a}{b}</textarea>
         
         <div class="actions">
@@ -41,6 +49,6 @@
     </main>
 
     <!-- Правильный путь к app.js в подкаталоге js -->
-    <script type="module" src="./js/app.js?v=6"></script>
+    <script type="module" src="./js/app.js?v=7"></script>
 </body>
 </html>
