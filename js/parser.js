@@ -139,12 +139,12 @@ export function texToOMML(tex) {
         let t = tokens[i];
         if (!t || t.startsWith('<')) continue;
         
-        let subTokens = t.split(/([\s\+\-\=\/\*\( \)])/g);
+        let subTokens = t.split(/([\s\+\-\=\/\*\( \)[A-Za-z0-9]])/g);
         for (let j = 0; j < subTokens.length; j++) {
             let st = subTokens[j].trim();
             if (st) {
-                // Если это не часть структуры тегов, оборачиваем в стандартный текстовый контейнер Word
-                subTokens[j] = `<m:r><m:t>${st}</m:t></m:r>`;
+                // Оборачиваем строго в m:r, как в вашем родном дампе Word
+                subTokens[j] = `<m:r>${st}</m:r>`;
             }
         }
         tokens[i] = subTokens.join('');
