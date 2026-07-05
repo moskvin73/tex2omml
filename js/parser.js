@@ -58,7 +58,6 @@ function parseMatrixContent(content, format) {
 export function texToMathML(tex, isSubCall = false) {
     let str = preprocessTeX(tex, 'mathml');
 
-    // Разбор матриц TeX -> MathML
     str = str.replace(/\\begin\{(matrix|pmatrix|bmatrix)\}([\s\S]*?)\\end\{\1\}/g, (match, type, content) => {
         let mat = `<mtable>${parseMatrixContent(content, 'mathml')}</mtable>`;
         if (type === 'pmatrix') return `<mo>&#x0028;</mo>${mat}<mo>&#x0029;</mo>`;
@@ -70,6 +69,8 @@ export function texToMathML(tex, isSubCall = false) {
     str = str.replace(/\\right\)/g, '<mo maxsize="100%">&#x0029;</mo>');
 
     str = str.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '<mfrac><mrow>$1</mrow><mrow>$2</mrow></mfrac>');
+    
+    // ИСПРАВЛЕНО: Сначала извлекаем корень n-ой степени, а затем обычный квадратный корень
     str = str.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '<mroot><mrow>$2</mrow><mrow>$1</mrow></mroot>');
     str = str.replace(/\\sqrt\s*\{([^}]*)\}/g, '<msqrt><mrow>$1</mrow></msqrt>');
     
@@ -101,7 +102,6 @@ export function texToMathML(tex, isSubCall = false) {
 export function texToOMML(tex, isSubCall = false) {
     let str = preprocessTeX(tex, 'omml');
 
-    // Разбор матриц TeX -> OMML (Word)
     str = str.replace(/\\begin\{(matrix|pmatrix|bmatrix)\}([\s\S]*?)\\end\{\1\}/g, (match, type, content) => {
         let mat = `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${parseMatrixContent(content, 'omml')}</m:m><m:ctrlPr/>`;
         if (type === 'pmatrix') return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${mat}</m:e></m:d>`;
@@ -111,6 +111,8 @@ export function texToOMML(tex, isSubCall = false) {
 
     str = str.replace(/\\left\((.*?)\\right\)/g, '<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>$1</m:e></m:d>');
     str = str.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '<m:f><m:num>$1</m:num><m:den>$2</m:den></m:f>');
+    
+    // ИСПРАВЛЕНО: Четкий последовательный разбор корней для Word 2010
     str = str.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '<m:rad><m:radPr></m:radPr><m:deg><m:r>$1</m:r></m:deg><m:e>$2</m:e></m:rad>');
     str = str.replace(/\\sqrt\s*\{([^}]*)\}/g, '<m:sRad><m:sRadPr></m:sRadPr><m:e>$1</m:e></m:sRad>');
     
