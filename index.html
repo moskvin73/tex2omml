@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub TeX Converter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="container">
+        <h2>TeX → MathML & Word 2010 Конвертер</h2>
+        <p class="subtitle">Работает на чистом JavaScript через GitHub Pages</p>
+        
+        <textarea id="texInput" placeholder="Введите TeX формулу...">\frac{x^2 - 1}{y_1} + \sqrt{z}</textarea>
+        
+        <div class="actions">
+            <button id="btnConvert" class="btn-primary">Конвертировать</button>
+            <button id="btnDownload" class="btn-word">Скачать для Word 2010 (.xml)</button>
+        </div>
+
+        <section class="result-box">
+            <h3>Превью в браузере:</h3>
+            <div id="mathMLPreview" class="preview-area"></div>
+        </section>
+
+        <div class="code-grid">
+            <section class="result-box">
+                <h3>Код MathML (Браузер)</h3>
+                <pre><code id="mathMLCode"></code></pre>
+            </section>
+            <section class="result-box">
+                <h3>Код OMML (Word 2010)</h3>
+                <pre><code id="ommlCode"></code></pre>
+            </section>
+        </div>
+    </main>
+
+    <!-- Подключаем логику как модули -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
