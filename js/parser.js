@@ -65,18 +65,33 @@ class TeXParser {
                 return { type: 'RadicalNode', deg, body };
             }
             if (tok.value === 'begin') {
-                this.consume('LBRACE'); const envName = this.consume('CHAR').value;
-                while(this.peek().type === 'CHAR') this.consume(); this.consume('RBRACE');
+               this.consume('LBRACE');
+                const envName = this.consume('CHAR').value;
+                // Считываем остаток имени окружения (например, 'atrix' для matrix или 'ases' для cases)
+                let fullEnvName = envName;
+                while(this.peek().type === 'CHAR') {
+                    fullEnvName += this.consume().value;
+                }
+                this.consume('RBRACE');
+
                 const rows = []; let currentRow = [];
                 while (true) {
                     const nextTok = this.peek();
                     if (nextTok.type === 'COMMAND' && nextTok.value === 'end') break;
-                    if (nextTok.type === 'ALIGN' || nextTok.type === 'NEWLINE') { this.consume(); rows.push(currentRow); currentRow = []; }
-                    else { currentRow.push(this.parseExpression()); }
+                    if (nextTok.type === 'ALIGN' || nextTok.type === 'NEWLINE') {
+                        this.consume(); rows.push(currentRow); currentRow = [];
+                    } else {
+                        currentRow.push(this.parseExpression());
+                    }
                 }
                 if (currentRow.length > 0) rows.push(currentRow);
-                this.consume('COMMAND'); this.consume('LBRACE'); while(this.peek().type === 'CHAR') this.consume(); this.consume('RBRACE');
-                return { type: 'MatrixNode', env: envName, rows };
+
+                this.consume('COMMAND'); this.consume('LBRACE');
+                while(this.peek().type === 'CHAR') this.consume();
+                this.consume('RBRACE');
+
+                // Возвращаем узел матрицы или системы уравнений
+                return { type: 'MatrixNode', env: fullEnvName, rows };
             }
             if (tok.value === 'cdot') return { type: 'TextNode', value: '·' };
             if (GREEK_MAP[tok.value]) return { type: 'GreekNode', value: GREEK_MAP[tok.value] };
@@ -105,8 +120,9 @@ function renderMathML(nodes) {
         if (node.type === 'SubNode') return `<msub><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.script)}</mrow></msub>`;
         if (node.type === 'MatrixNode') {
             const table = `<mtable>${node.rows.map(r => `<mtr><mtd><mrow>${renderMathML(r)}</mrow></mtd></mtr>`).join('')}</mtable>`;
-            if (node.env === 'p') return `<mo>&#x0028;</mo>${table}<mo>&#x0029;</mo>`;
-            if (node.env === 'b') return `<mo>&#x005B;</mo>${table}<mo>&#x005D;</mo>`;
+            if (node.env === 'p' || node.env === 'pmatrix') return `<mo>&#x0028;</mo>${table}<mo>&#x0029;</mo>`;
+            if (node.env === 'b' || node.env === 'bmatrix') return `<mo>&#x005B;</mo>${table}<mo>&#x005D;</mo>`;
+            if (node.env === 'cases') return `<mo>&#x007B;</mo>${table}`; // Фигурная скобка только слева
             return table;
         }
         return '';
@@ -131,8 +147,10 @@ function renderOMML(nodes) {
         if (node.type === 'SubNode') return `<m:sSub><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.script)}</m:sub></m:sSub>`;
         if (node.type === 'MatrixNode') {
             const table = `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${node.rows.map(r => `<m:mr><m:e>${renderOMML(r)}</m:e></m:mr>`).join('')}</m:m>`;
-            if (node.env === 'p') return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${table}</m:e></m:d>`;
-            if (node.env === 'b') return `<m:d><m:dPr><m:begChr w:val="["/><m:endChr w:val="]"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            if (node.env === 'p' || node.env === 'pmatrix') return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            if (node.env === 'b' || node.env === 'bmatrix') return `<m:d><m:dPr><m:begChr w:val="["/><m:endChr w:val="]"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            // ИСПРАВЛЕНО: Система уравнений для Word 2010 (Фигурная скобка слева, справа пусто)
+            if (node.env === 'cases') return `<m:d><m:dPr><m:begChr w:val="{"/><m:endChr w:val=""/></m:dPr><m:e>${table}</m:e></m:d>`;
             return table;
         }
         return '';
