@@ -5,7 +5,7 @@ const GREEK_MAP = {
     'lambda': 'λ', 'pi': 'π', 'sigma': 'σ', 'omega': 'ω', 'Delta': 'Δ'
 };
 
-// 1. ЛЕКСИЧЕСКИЙ АНАЛИЗАТОР (СКАНЕР)
+// 1. ЛЕКСИЧЕСКИЙ АНАЛИЗАТОР (СКАНЕР / ТОКЕНИЗАТОР)
 function tokenize(tex) {
     const tokens = [];
     let i = 0;
@@ -51,7 +51,7 @@ function tokenize(tex) {
     return tokens;
 }
 
-// 2. СИНТАКСИЧЕСКИЙ АНАЛИЗАТОР (ПАРСЕР РЕКУРСИВНОГО СПУСКА)
+// 2. СИНТАКСИЧЕСКИЙ АНАЛИЗАТОР (ПАРСЕР МЕТОДОМ РЕКУРСИВНОГО СПУСКА)
 class TeXParser {
     constructor(tokens) {
         this.tokens = tokens;
@@ -59,6 +59,7 @@ class TeXParser {
     }
 
     peek() { return this.tokens[this.pos]; }
+    
     consume(type) {
         const tok = this.peek();
         if (type && tok.type !== type) {
@@ -139,8 +140,8 @@ class TeXParser {
 
             if (tok.value === 'begin') {
                 this.consume('LBRACE');
-                const envName = this.consume('CHAR').value; // упростим до одной буквы типа m, p, b
-                // Считываем до конца слова окружения
+                const envName = this.consume('CHAR').value; 
+                // Пропускаем оставшиеся буквы названия окружения
                 while(this.peek().type === 'CHAR') this.consume();
                 this.consume('RBRACE');
 
@@ -179,9 +180,8 @@ class TeXParser {
                 return { type: 'TextNode', value: '·' };
             }
 
-            // Если это греческая буква
             if (GREEK_MAP[tok.value]) {
-                return { type: 'GreekNode', value: GREEK_MAP[tok.value], name: tok.value };
+                return { type: 'GreekNode', value: GREEK_MAP[tok.value] };
             }
 
             return { type: 'TextNode', value: '\\' + tok.value };
@@ -200,15 +200,14 @@ class TeXParser {
 }
 
 // 3. ГЕНЕРАТОРЫ КОДА (ОБХОД СИНТАКСИЧЕСКОГО ДЕРЕВА)
-export function renderMathML(nodes) {
+function renderMathML(nodes) {
     if (!nodes) return '';
     return nodes.map(node => {
-        if (node.type === 'TextNode') {
+        if (node.type === 'TextNode' || node.type === 'GreekNode') {
             if (['+', '-', '=', '*', '/'].includes(node.value)) return `<mo>${node.value}</mo>`;
             if (/^[0-9]+$/.test(node.value)) return `<mn>${node.value}</mn>`;
             return `<mi>${node.value}</mi>`;
         }
-        if (node.type === 'GreekNode') return `<mi>${node.value}</mi>`;
         if (node.type === 'GroupNode') return `<mrow>${renderMathML(node.body)}</mrow>`;
         if (node.type === 'FractionNode') return `<mfrac><mrow>${renderMathML(node.num)}</mrow><mrow>${renderMathML(node.den)}</mrow></mfrac>`;
         if (node.type === 'RadicalNode') {
@@ -227,60 +226,58 @@ export function renderMathML(nodes) {
     }).join('');
 }
 
-export function renderOMML(nodes) {
+function renderOMML(nodes) {
     if (!nodes) return '';
     return nodes.map(node => {
-        // Простые символы и операторы
         if (node.type === 'TextNode' || node.type === 'GreekNode') {
             return `<m:r><m:t>${node.value}</m:t></m:r>`;
         }
-        
-        // Группы в фигурных скобках {...}
-        if (node.type === 'GroupNode') {
-            return renderOMML(node.body);
-        }
-        
-        // Обычные дроби \frac{A}{B}
+        if (node.type === 'GroupNode') return renderOMML(node.body);
         if (node.type === 'FractionNode') {
             return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
         }
-        
-        // Корни (обычный и со степенью)
         if (node.type === 'RadicalNode') {
             if (node.deg) {
-                // Корень n-ой степени
                 return `<m:rad><m:radPr></m:radPr><m:deg>${renderOMML(node.deg)}</m:deg><m:e>${renderOMML(node.body)}</m:e></m:rad>`;
             }
-            // Чистый квадратный корень Word 2010 (Square Radical) без пустой рамки степени
             return `<m:sRad><m:sRadPr></m:sRadPr><m:e>${renderOMML(node.body)}</m:e></m:sRad>`;
         }
-        
-        // Верхний индекс (степень) x^2
         if (node.type === 'SupNode') {
             return `<m:sSup><m:e>${renderOMML([node.base])}</m:e><m:sup>${renderOMML(node.script)}</m:sup></m:sSup>`;
         }
-        
-        // Нижний индекс y_1
         if (node.type === 'SubNode') {
             return `<m:sSub><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.script)}</m:sub></m:sSub>`;
         }
-        
-        // Матрицы и таблицы окружений \begin{matrix} ... \end{matrix}
         if (node.type === 'MatrixNode') {
             const table = `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${node.rows.map(r => `<m:mr><m:e>${renderOMML(r)}</m:e></m:mr>`).join('')}</m:m>`;
-            
-            // Если pmatrix -> оборачиваем в адаптивные круглые скобки
-            if (node.env === 'p') {
-                return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${table}</m:e></m:d>`;
-            }
-            // Если bmatrix -> оборачиваем в адаптивные квадратные скобки
-            if (node.env === 'b') {
-                return `<m:d><m:dPr><m:begChr w:val="["/><m:endChr w:val="]"/></m:dPr><m:e>${table}</m:e></m:d>`;
-            }
-            // Обычная матрица без скобок
+            if (node.env === 'p') return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            if (node.env === 'b') return `<m:d><m:dPr><m:begChr w:val="["/><m:endChr w:val="]"/></m:dPr><m:e>${table}</m:e></m:d>`;
             return table;
         }
-        
         return '';
     }).join('');
+}
+
+// 4. ЭКСПОРТИРУЕМЫЕ ФУНКЦИИ (ВЫЗОВ ТОКЕНИЗАТОРА И КЛАССА ПАРСЕРА)
+
+export function texToMathML(tex) {
+    try {
+        const tokens = tokenize(tex);
+        const parser = new TeXParser(tokens);
+        const ast = parser.parse();
+        return `<math xmlns="http://w3.org" display="block">${renderMathML(ast)}</math>`;
+    } catch (e) {
+        return `<span style="color:red;">Ошибка синтаксиса MathML: ${e.message}</span>`;
+    }
+}
+
+export function texToOMML(tex) {
+    try {
+        const tokens = tokenize(tex);
+        const parser = new TeXParser(tokens);
+        const ast = parser.parse();
+        return `<m:oMath>${renderOMML(ast)}</m:oMath>`;
+    } catch (e) {
+        return `<!-- Ошибка OMML: ${e.message} -->`;
+    }
 }
