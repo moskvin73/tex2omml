@@ -1,4 +1,4 @@
-import { texToMathML, texToOMML } from './parser.js';
+import { texToMathML, texToOMML } from './js/parser.js';
 
 let currentOMML = "";
 
