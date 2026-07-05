@@ -53,6 +53,18 @@ class TeXParser {
         if (tok.type === 'CHAR' || tok.type === 'OPERATOR') { this.consume(); return { type: 'TextNode', value: tok.value }; }
         if (tok.type === 'COMMAND') {
             this.consume();
+            if (tok.value === 'text') {
+                this.consume('LBRACE');
+                // Считываем все токены внутри \text{...} как чистый текст
+                const body = [];
+                while (this.pos < this.tokens.length && this.peek().type !== 'RBRACE') {
+                    const nextTok = this.consume();
+                    body.push(nextTok.value || '');
+                }
+                this.consume('RBRACE');
+                // Создаем специальный узел, который защищен от курсива
+                return { type: 'PlainTextNode', value: body.join('') };
+            }            
             if (tok.value === 'frac') {
                 this.consume('LBRACE'); const num = this.parse(); this.consume('RBRACE');
                 this.consume('LBRACE'); const den = this.parse(); this.consume('RBRACE');
@@ -125,6 +137,9 @@ function renderMathML(nodes) {
             if (node.env === 'cases') return `<mo>&#x007B;</mo>${table}`; // Фигурная скобка только слева
             return table;
         }
+        if (node.type === 'PlainTextNode') {
+            return `<mtext>${node.value}</mtext>`;
+        }
         return '';
     }).join('');
 }
@@ -153,6 +168,10 @@ function renderOMML(nodes) {
             if (node.env === 'cases') return `<m:d><m:dPr><m:begChr w:val="{"/><m:endChr w:val=""/></m:dPr><m:e>${table}</m:e></m:d>`;
             return table;
         }
+        if (node.type === 'PlainTextNode') {
+            // В OMML текст помечается обычным m:r без математических стилей
+            return `<m:r><m:t>${node.value}</m:t></m:r>`;
+        }        
         return '';
     }).join('');
 }

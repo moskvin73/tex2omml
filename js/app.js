@@ -1,4 +1,4 @@
-import { texToMathML, texToOMML } from './parser.js?v=8';
+import { texToMathML, texToOMML } from './parser.js?v=9';
 
 let currentOMML = "";
 
@@ -25,14 +25,16 @@ async function handleCopyWord() {
     // Модифицируем OMML код строго под требования буфера обмена Word 2010.
     // Находим все теги <m:t>Текст</m:t> и внедряем в них инлайн-курсив и шрифт Cambria Math.
     // Исключаем из курсива знаки плюс, минус, равно и цифры, чтобы они оставались прямыми!
-     const richOMML = currentOMML.replace(/<m:t>([\s\S]*?)<\/m:t>/g, (match, text) => {
+    const richOMML = currentOMML.replace(/<m:t>([\s\S]*?)<\/m:t>/g, (match, text) => {
         const trimmed = text.trim();
-        // Цифры и операторы остаются прямыми
-        if (['+', '-', '=', '*', '/', '(', ')'].includes(trimmed) || /^[0-9]+$/.test(trimmed)) {
-            return `<m:t><span style='font-size:12.0pt;font-family:"Cambria Math","serif";'>${text}</span></m:t>`;
+        
+        // ИСПРАВЛЕНО: Делаем курсивом СТРОГО одиночные латинские буквы (переменные)
+        if (/^[A-Za-z]$/.test(trimmed)) {
+            return `<m:t><i><span style='font-size:12.0pt;font-family:"Cambria Math","serif";mso-fareast-font-family:"Times New Roman";mso-bidi-font-family:"Times New Roman";'>${text}</span></i></m:t>`;
         }
-        // Латинские переменные оборачиваем строго как в вашем дампе
-        return `<m:t><i><span style='font-size:12.0pt;font-family:"Cambria Math","serif";mso-fareast-font-family:"Times New Roman";mso-bidi-font-family:"Times New Roman";'>${text}</span></i></m:t>`;
+        
+        // Все остальное (цифры, операторы, кириллица, целые слова из \text) остается ПРЯМЫМ шрифтом
+        return `<m:t><span style='font-size:12.0pt;font-family:"Cambria Math","serif";'>${text}</span></m:t>`;
     });
 
     // Формируем тело документа в зависимости от режима
