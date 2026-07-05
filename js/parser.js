@@ -107,7 +107,7 @@ export function texToMathML(tex) {
         tokens[i] = subTokens.join('');
     }
     
-    const finalRawXML = `<math xmlns="http://w3.org" display="block">${tokens.join('')}</math>`;
+    const finalRawXML = `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">${tokens.join('')}</math>`;
     return formatXML(finalRawXML);
 }
 
