@@ -4,7 +4,7 @@ const GREEK_MAP = {
     'alpha': 'α', 'beta': 'β', 'gamma': 'γ', 'delta': 'δ',
     'lambda': 'λ', 'pi': 'π', 'sigma': 'σ', 'omega': 'ω', 'Delta': 'Δ'
 };
-
+ 
 // 1. ЛЕКСИЧЕСКИЙ АНАЛИЗАТОР (СКАНЕР / ТОКЕНИЗАТОР)
 function tokenize(tex) {
     const tokens = [];
