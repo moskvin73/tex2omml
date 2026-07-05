@@ -12,30 +12,6 @@ const greekLetters = {
     '\\Delta': { mathml: '&#x0394;', omml: 'Δ' }
 };
 
-function formatXML(xml) {
-    let formatted = '';
-    let reg = /(>)(<)(\/*)/g;
-    xml = xml.replace(reg, '$1\r\n$2$3');
-    let pad = 0;
-    xml.split('\r\n').forEach(function(node) {
-        let indent = 0;
-        if (node.match(/.+<\/\w[^>]*>$/)) {
-            indent = 0;
-        } else if (node.match(/^<\/\w/)) {
-            if (pad !== 0) pad -= 1;
-        } else if (node.match(/^<\w[^>]*[^\/]>$/)) {
-            indent = 1;
-        } else {
-            indent = 0;
-        }
-        let padding = '';
-        for (let i = 0; i < pad; i++) { padding += '    '; }
-        formatted += padding + node + '\r\n';
-        pad += indent;
-    });
-    return formatted.trim();
-}
-
 function preprocessTeX(tex, format) {
     let res = tex.trim();
     if (format === 'mathml') {
@@ -93,7 +69,6 @@ export function texToMathML(tex, isSubCall = false) {
     str = str.replace(/\\left\(/g, '<mo maxsize="100%">&#x0028;</mo>');
     str = str.replace(/\\right\)/g, '<mo maxsize="100%">&#x0029;</mo>');
 
-    // Безопасная замена без while циклов
     str = str.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '<mfrac><mrow>$1</mrow><mrow>$2</mrow></mfrac>');
     str = str.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '<mroot><mrow>$2</mrow><mrow>$1</mrow></mroot>');
     str = str.replace(/\\sqrt\s*\{([^}]*)\}/g, '<msqrt><mrow>$1</mrow></msqrt>');
@@ -107,7 +82,8 @@ export function texToMathML(tex, isSubCall = false) {
     for (let i = 0; i < tokens.length; i++) {
         let t = tokens[i];
         if (!t || t.startsWith('<') || t.startsWith('&')) continue; 
-        let subTokens = t.split(/([\s\+\-\=\/\*\( \)])/g);
+        
+        let subTokens = t.split(/([\s\+\-\=\/\*\(\)[A-Za-z0-9]])/g);
         for (let j = 0; j < subTokens.length; j++) {
             let st = subTokens[j].trim();
             if (!st) continue;
@@ -119,8 +95,7 @@ export function texToMathML(tex, isSubCall = false) {
     }
     
     if (isSubCall) return tokens.join('');
-    const finalRawXML = `<math xmlns="http://w3.org" display="block">${tokens.join('')}</math>`;
-    return formatXML(finalRawXML);
+    return `<math xmlns="http://w3.org" display="block">${tokens.join('')}</math>`;
 }
 
 export function texToOMML(tex, isSubCall = false) {
@@ -136,8 +111,6 @@ export function texToOMML(tex, isSubCall = false) {
 
     str = str.replace(/\\left\((.*?)\\right\)/g, '<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>$1</m:e></m:d>');
     str = str.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '<m:f><m:num>$1</m:num><m:den>$2</m:den></m:f>');
-    
-    // ИСПРАВЛЕНО: Теперь замена безопасна и не вызывает бесконечный цикл
     str = str.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '<m:rad><m:radPr></m:radPr><m:deg><m:r>$1</m:r></m:deg><m:e>$2</m:e></m:rad>');
     str = str.replace(/\\sqrt\s*\{([^}]*)\}/g, '<m:sRad><m:sRadPr></m:sRadPr><m:e>$1</m:e></m:sRad>');
     
@@ -146,11 +119,12 @@ export function texToOMML(tex, isSubCall = false) {
     str = str.replace(/([A-Za-z0-9]+)_\{([^}]*)\}/g, '<m:sSub><m:e><m:r>$1</m:r></m:e><m:sub>$2</m:sub></m:sSub>');
     str = str.replace(/([A-Za-z0-9]+)_([A-Za-z0-9]+)/g, '<m:sSub><m:e><m:r>$1</m:r></m:e><m:sub>$2</m:sub></m:sSub>');
 
-    let tokens = str.split(/(<\/?[m]:[a-zA-Z]+>)/g);
+    let tokens = str.split(/(<\/?[m]:[a-zA-Z1-9]+[^>]*>)/g);
     for (let i = 0; i < tokens.length; i++) {
         let t = tokens[i];
         if (!t || t.startsWith('<')) continue;
-        let subTokens = t.split(/([\s\+\-\=\/\*\( \)[A-Za-z0-9]])/g);
+        
+        let subTokens = t.split(/([\s\+\-\=\/\*\(\)[A-Za-z0-9]])/g);
         for (let j = 0; j < subTokens.length; j++) {
             let st = subTokens[j].trim();
             if (st) subTokens[j] = `<m:r>${st}</m:r>`;
@@ -159,6 +133,5 @@ export function texToOMML(tex, isSubCall = false) {
     }
     
     if (isSubCall) return tokens.join('');
-    const finalRawXML = `<m:oMath>${tokens.join('')}</m:oMath>`;
-    return formatXML(finalRawXML);
+    return `<m:oMath>${tokens.join('')}</m:oMath>`;
 }
