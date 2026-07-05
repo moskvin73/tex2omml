@@ -1,139 +1,286 @@
-// Модуль для трансляции TeX синтаксиса в MathML и OMML (Word 2010)
+// НАСТОЯЩИЙ КОМПИЛЯТОР TEX (Сканер + Рекурсивный спуск + Сборщик дерева)
 
-const greekLetters = {
-    '\\alpha': { mathml: '&#x03B1;', omml: 'α' },
-    '\\beta': { mathml: '&#x03B2;', omml: 'β' },
-    '\\gamma': { mathml: '&#x03B3;', omml: 'γ' },
-    '\\delta': { mathml: '&#x03B4;', omml: 'δ' },
-    '\\lambda': { mathml: '&#x03BB;', omml: 'λ' },
-    '\\pi': { mathml: '&#x03C0;', omml: 'π' },
-    '\\sigma': { mathml: '&#x03C3;', omml: 'σ' },
-    '\\omega': { mathml: '&#x03C9;', omml: 'ω' },
-    '\\Delta': { mathml: '&#x0394;', omml: 'Δ' }
+const GREEK_MAP = {
+    'alpha': 'α', 'beta': 'β', 'gamma': 'γ', 'delta': 'δ',
+    'lambda': 'λ', 'pi': 'π', 'sigma': 'σ', 'omega': 'ω', 'Delta': 'Δ'
 };
 
-function preprocessTeX(tex, format) {
-    let res = tex.trim();
-    if (format === 'mathml') {
-        res = res.replace(/\\cdot/g, '<mo>&#x22C5;</mo>');
-    } else {
-        res = res.replace(/\\cdot/g, '<m:r>·</m:r>');
-    }
-    Object.keys(greekLetters).forEach(key => {
-        const regex = new RegExp(key.replace(/\\/g, '\\\\'), 'g');
-        if (format === 'mathml') {
-            res = res.replace(regex, `<mi>${greekLetters[key].mathml}</mi>`);
-        } else {
-            res = res.replace(regex, `<m:r>${greekLetters[key].omml}</m:r>`);
+// 1. ЛЕКСИЧЕСКИЙ АНАЛИЗАТОР (СКАНЕР)
+function tokenize(tex) {
+    const tokens = [];
+    let i = 0;
+    while (i < tex.length) {
+        const char = tex[i];
+
+        if (/\s/.test(char)) { i++; continue; } // Пропускаем пробелы
+        if (char === '{') { tokens.push({ type: 'LBRACE' }); i++; continue; }
+        if (char === '}') { tokens.push({ type: 'RBRACE' }); i++; continue; }
+        if (char === '[') { tokens.push({ type: 'LBRACKET' }); i++; continue; }
+        if (char === ']') { tokens.push({ type: 'RBRACKET' }); i++; continue; }
+        if (char === '&') { tokens.push({ type: 'ALIGN' }); i++; continue; }
+
+        // Перенос строки в матрицах \\
+        if (char === '\\' && tex[i + 1] === '\\') {
+            tokens.push({ type: 'NEWLINE' });
+            i += 2;
+            continue;
         }
-    });
-    return res;
+
+        // Команды TeX (\frac, \sqrt, \alpha, \begin, \end)
+        if (char === '\\') {
+            let match = tex.slice(i + 1).match(/^[a-zA-Z]+/);
+            if (match) {
+                tokens.push({ type: 'COMMAND', value: match[0] });
+                i += 1 + match[0].length;
+                continue;
+            }
+        }
+
+        // Операторы
+        if (['+', '-', '=', '*', '/', '(', ')'].includes(char)) {
+            tokens.push({ type: 'OPERATOR', value: char });
+            i++;
+            continue;
+        }
+
+        // Обычные символы и цифры
+        tokens.push({ type: 'CHAR', value: char });
+        i++;
+    }
+    tokens.push({ type: 'EOF' });
+    return tokens;
 }
 
-function parseMatrixContent(content, format) {
-    const rows = content.split(/\\\\/);
-    let xmlResult = '';
+// 2. СИНТАКСИЧЕСКИЙ АНАЛИЗАТОР (ПАРСЕР РЕКУРСИВНОГО СПУСКА)
+class TeXParser {
+    constructor(tokens) {
+        this.tokens = tokens;
+        this.pos = 0;
+    }
 
-    rows.forEach(row => {
-        if (!row.trim()) return;
-        const columns = row.split('&');
-        
-        if (format === 'mathml') {
-            xmlResult += '<mtr>';
-            columns.forEach(col => {
-                xmlResult += `<mtd><mrow>${texToMathML(col.trim(), true)}</mrow></mtd>`;
-            });
-            xmlResult += '</mtr>';
-        } else {
-            xmlResult += '<m:mr>';
-            columns.forEach(col => {
-                xmlResult += `<m:e>${texToOMML(col.trim(), true)}</m:e>`;
-            });
-            xmlResult += '</m:mr>';
+    peek() { return this.tokens[this.pos]; }
+    consume(type) {
+        const tok = this.peek();
+        if (type && tok.type !== type) {
+            throw new Error(`Ожидался токен ${type}, но получен ${tok.type}`);
         }
-    });
-    return xmlResult;
+        this.pos++;
+        return tok;
+    }
+
+    parse() {
+        const nodes = [];
+        while (this.peek().type !== 'EOF' && this.peek().type !== 'RBRACE' && this.peek().type !== 'NEWLINE' && this.peek().type !== 'ALIGN') {
+            nodes.push(this.parseExpression());
+        }
+        return nodes;
+    }
+
+    parseExpression() {
+        let node = this.parsePrimary();
+
+        // Обработка индексов и степеней (сцепление после базового узла)
+        while (this.peek().type === 'CHAR' && (this.peek().value === '^' || this.peek().value === '_')) {
+            const op = this.consume('CHAR').value;
+            let scriptNode = null;
+            
+            if (this.peek().type === 'LBRACE') {
+                this.consume('LBRACE');
+                scriptNode = this.parse();
+                this.consume('RBRACE');
+            } else {
+                scriptNode = [this.parsePrimary()];
+            }
+
+            node = {
+                type: op === '^' ? 'SupNode' : 'SubNode',
+                base: node,
+                script: scriptNode
+            };
+        }
+        return node;
+    }
+
+    parsePrimary() {
+        const tok = this.peek();
+
+        if (tok.type === 'CHAR' || tok.type === 'OPERATOR') {
+            this.consume();
+            return { type: 'TextNode', value: tok.value };
+        }
+
+        if (tok.type === 'COMMAND') {
+            this.consume();
+            
+            if (tok.value === 'frac') {
+                this.consume('LBRACE');
+                const num = this.parse();
+                this.consume('RBRACE');
+                
+                this.consume('LBRACE');
+                const den = this.parse();
+                this.consume('RBRACE');
+                
+                return { type: 'FractionNode', num, den };
+            }
+
+            if (tok.value === 'sqrt') {
+                let deg = null;
+                if (this.peek().type === 'LBRACKET') {
+                    this.consume('LBRACKET');
+                    deg = this.parse();
+                    this.consume('RBRACKET');
+                }
+                this.consume('LBRACE');
+                const body = this.parse();
+                this.consume('RBRACE');
+                return { type: 'RadicalNode', deg, body };
+            }
+
+            if (tok.value === 'begin') {
+                this.consume('LBRACE');
+                const envName = this.consume('CHAR').value; // упростим до одной буквы типа m, p, b
+                // Считываем до конца слова окружения
+                while(this.peek().type === 'CHAR') this.consume();
+                this.consume('RBRACE');
+
+                const rows = [];
+                let currentRow = [];
+
+                while (true) {
+                    const nextTok = this.peek();
+                    if (nextTok.type === 'COMMAND' && nextTok.value === 'end') {
+                        break;
+                    }
+                    
+                    if (nextTok.type === 'ALIGN') {
+                        this.consume();
+                        rows.push(currentRow);
+                        currentRow = [];
+                    } else if (nextTok.type === 'NEWLINE') {
+                        this.consume();
+                        rows.push(currentRow);
+                        currentRow = [];
+                    } else {
+                        currentRow.push(this.parseExpression());
+                    }
+                }
+                if (currentRow.length > 0) rows.push(currentRow);
+
+                this.consume('COMMAND'); // end
+                this.consume('LBRACE');
+                while(this.peek().type === 'CHAR') this.consume();
+                this.consume('RBRACE');
+
+                return { type: 'MatrixNode', env: envName, rows };
+            }
+
+            if (tok.value === 'cdot') {
+                return { type: 'TextNode', value: '·' };
+            }
+
+            // Если это греческая буква
+            if (GREEK_MAP[tok.value]) {
+                return { type: 'GreekNode', value: GREEK_MAP[tok.value], name: tok.value };
+            }
+
+            return { type: 'TextNode', value: '\\' + tok.value };
+        }
+
+        if (tok.type === 'LBRACE') {
+            this.consume('LBRACE');
+            const body = this.parse();
+            this.consume('RBRACE');
+            return { type: 'GroupNode', body };
+        }
+
+        this.consume();
+        return { type: 'TextNode', value: tok.value || '' };
+    }
 }
 
-export function texToMathML(tex, isSubCall = false) {
-    let str = preprocessTeX(tex, 'mathml');
-
-    str = str.replace(/\\begin\{(matrix|pmatrix|bmatrix)\}([\s\S]*?)\\end\{\1\}/g, (match, type, content) => {
-        let mat = `<mtable>${parseMatrixContent(content, 'mathml')}</mtable>`;
-        if (type === 'pmatrix') return `<mo>&#x0028;</mo>${mat}<mo>&#x0029;</mo>`;
-        if (type === 'bmatrix') return `<mo>&#x005B;</mo>${mat}<mo>&#x005D;</mo>`;
-        return mat;
-    });
-
-    str = str.replace(/\\left\(/g, '<mo maxsize="100%">&#x0028;</mo>');
-    str = str.replace(/\\right\)/g, '<mo maxsize="100%">&#x0029;</mo>');
-
-    str = str.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '<mfrac><mrow>$1</mrow><mrow>$2</mrow></mfrac>');
-    
-    // ИСПРАВЛЕНО: Сначала извлекаем корень n-ой степени, а затем обычный квадратный корень
-    str = str.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '<mroot><mrow>$2</mrow><mrow>$1</mrow></mroot>');
-    str = str.replace(/\\sqrt\s*\{([^}]*)\}/g, '<msqrt><mrow>$1</mrow></msqrt>');
-    
-    str = str.replace(/([A-Za-z0-9]+)\^\{([^}]*)\}/g, '<msup><mi>$1</mi><mrow>$2</mrow></msup>');
-    str = str.replace(/([A-Za-z0-9]+)\^([A-Za-z0-9]+)/g, '<msup><mi>$1</mi><mi>$2</mi></msup>');
-    str = str.replace(/([A-Za-z0-9]+)_\{([^}]*)\}/g, '<msub><mi>$1</mi><mrow>$2</mrow></msub>');
-    str = str.replace(/([A-Za-z0-9]+)_([A-Za-z0-9]+)/g, '<msub><mi>$1</mi><mi>$2</mi></msub>');
-
-    let tokens = str.split(/(<\/?[a-zA-Z1-9:]+[^>]*>|&#?[a-zA-Z0-9]+;)/g);
-    for (let i = 0; i < tokens.length; i++) {
-        let t = tokens[i];
-        if (!t || t.startsWith('<') || t.startsWith('&')) continue; 
-        
-        let subTokens = t.split(/([\s\+\-\=\/\*\(\)[A-Za-z0-9]])/g);
-        for (let j = 0; j < subTokens.length; j++) {
-            let st = subTokens[j].trim();
-            if (!st) continue;
-            if (['+', '-', '=', '*', '/', '(', ')'].includes(st)) subTokens[j] = `<mo>${st}</mo>`;
-            else if (/^[0-9]+$/.test(st)) subTokens[j] = `<mn>${st}</mn>`;
-            else if (/^[A-Za-z]+$/.test(st)) subTokens[j] = `<mi>${st}</mi>`;
+// 3. ГЕНЕРАТОРЫ КОДА (ОБХОД СИНТАКСИЧЕСКОГО ДЕРЕВА)
+function renderMathML(nodes) {
+    if (!nodes) return '';
+    return nodes.map(node => {
+        if (node.type === 'TextNode') {
+            if (['+', '-', '=', '*', '/'].includes(node.value)) return `<mo>${node.value}</mo>`;
+            if (/^[0-9]+$/.test(node.value)) return `<mn>${node.value}</mn>`;
+            return `<mi>${node.value}</mi>`;
         }
-        tokens[i] = subTokens.join('');
-    }
-    
-    if (isSubCall) return tokens.join('');
-    return `<math xmlns="http://w3.org" display="block">${tokens.join('')}</math>`;
+        if (node.type === 'GreekNode') return `<mi>${node.value}</mi>`;
+        if (node.type === 'GroupNode') return `<mrow>${renderMathML(node.body)}</mrow>`;
+        if (node.type === 'FractionNode') return `<mfrac><mrow>${renderMathML(node.num)}</mrow><mrow>${renderMathML(node.den)}</mrow></mfrac>`;
+        if (node.type === 'RadicalNode') {
+            if (node.deg) return `<mroot><mrow>${renderMathML(node.body)}</mrow><mrow>${renderMathML(node.deg)}</mrow></mroot>`;
+            return `<msqrt><mrow>${renderMathML(node.body)}</mrow></msqrt>`;
+        }
+        if (node.type === 'SupNode') return `<msup><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.script)}</mrow></msup>`;
+        if (node.type === 'SubNode') return `<msub><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.script)}</mrow></msub>`;
+        if (node.type === 'MatrixNode') {
+            const table = `<mtable>${node.rows.map(r => `<mtr><mtd><mrow>${renderMathML(r)}</mrow></mtd></mtr>`).join('')}</mtable>`;
+            if (node.env === 'p') return `<mo>&#x0028;</mo>${table}<mo>&#x0029;</mo>`;
+            if (node.env === 'b') return `<mo>&#x005B;</mo>${table}<mo>&#x005D;</mo>`;
+            return table;
+        }
+        return '';
+    }).join('');
 }
 
-export function texToOMML(tex, isSubCall = false) {
-    let str = preprocessTeX(tex, 'omml');
-
-    str = str.replace(/\\begin\{(matrix|pmatrix|bmatrix)\}([\s\S]*?)\\end\{\1\}/g, (match, type, content) => {
-        let mat = `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${parseMatrixContent(content, 'omml')}</m:m><m:ctrlPr/>`;
-        if (type === 'pmatrix') return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${mat}</m:e></m:d>`;
-        if (type === 'bmatrix') return `<m:d><m:dPr><m:begChr w:val="["/><m:endChr w:val="]"/></m:dPr><m:e>${mat}</m:e></m:d>`;
-        return mat;
-    });
-
-    str = str.replace(/\\left\((.*?)\\right\)/g, '<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>$1</m:e></m:d>');
-    str = str.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '<m:f><m:num>$1</m:num><m:den>$2</m:den></m:f>');
-    
-    // ИСПРАВЛЕНО: Четкий последовательный разбор корней для Word 2010
-    str = str.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '<m:rad><m:radPr></m:radPr><m:deg><m:r>$1</m:r></m:deg><m:e>$2</m:e></m:rad>');
-    str = str.replace(/\\sqrt\s*\{([^}]*)\}/g, '<m:sRad><m:sRadPr></m:sRadPr><m:e>$1</m:e></m:sRad>');
-    
-    str = str.replace(/([A-Za-z0-9]+)\^\{([^}]*)\}/g, '<m:sSup><m:e><m:r>$1</m:r></m:e><m:sup>$2</m:sup></m:sSup>');
-    str = str.replace(/([A-Za-z0-9]+)\^([A-Za-z0-9]+)/g, '<m:sSup><m:e><m:r>$1</m:r></m:e><m:sup>$2</m:sup></m:sSup>');
-    str = str.replace(/([A-Za-z0-9]+)_\{([^}]*)\}/g, '<m:sSub><m:e><m:r>$1</m:r></m:e><m:sub>$2</m:sub></m:sSub>');
-    str = str.replace(/([A-Za-z0-9]+)_([A-Za-z0-9]+)/g, '<m:sSub><m:e><m:r>$1</m:r></m:e><m:sub>$2</m:sub></m:sSub>');
-
-    let tokens = str.split(/(<\/?[m]:[a-zA-Z1-9]+[^>]*>)/g);
-    for (let i = 0; i < tokens.length; i++) {
-        let t = tokens[i];
-        if (!t || t.startsWith('<')) continue;
-        
-        let subTokens = t.split(/([\s\+\-\=\/\*\(\)[A-Za-z0-9]])/g);
-        for (let j = 0; j < subTokens.length; j++) {
-            let st = subTokens[j].trim();
-            if (st) subTokens[j] = `<m:r>${st}</m:r>`;
+function renderOMML(nodes) {
+    if (!nodes) return '';
+    return nodes.map(node => {
+        // Простые символы и операторы
+        if (node.type === 'TextNode' || node.type === 'GreekNode') {
+            return `<m:r><m:t>${node.value}</m:t></m:r>`;
         }
-        tokens[i] = subTokens.join('');
-    }
-    
-    if (isSubCall) return tokens.join('');
-    return `<m:oMath>${tokens.join('')}</m:oMath>`;
+        
+        // Группы в фигурных скобках {...}
+        if (node.type === 'GroupNode') {
+            return renderOMML(node.body);
+        }
+        
+        // Обычные дроби \frac{A}{B}
+        if (node.type === 'FractionNode') {
+            return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
+        }
+        
+        // Корни (обычный и со степенью)
+        if (node.type === 'RadicalNode') {
+            if (node.deg) {
+                // Корень n-ой степени
+                return `<m:rad><m:radPr></m:radPr><m:deg>${renderOMML(node.deg)}</m:deg><m:e>${renderOMML(node.body)}</m:e></m:rad>`;
+            }
+            // Чистый квадратный корень Word 2010 (Square Radical) без пустой рамки степени
+            return `<m:sRad><m:sRadPr></m:sRadPr><m:e>${renderOMML(node.body)}</m:e></m:sRad>`;
+        }
+        
+        // Верхний индекс (степень) x^2
+        if (node.type === 'SupNode') {
+            return `<m:sSup><m:e>${renderOMML([node.base])}</m:e><m:sup>${renderOMML(node.script)}</m:sup></m:sSup>`;
+        }
+        
+        // Нижний индекс y_1
+        if (node.type === 'SubNode') {
+            return `<m:sSub><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.script)}</m:sub></m:sSub>`;
+        }
+        
+        // Матрицы и таблицы окружений \begin{matrix} ... \end{matrix}
+        if (node.type === 'MatrixNode') {
+            const table = `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${node.rows.map(r => `<m:mr><m:e>${renderOMML(r)}</m:e></m:mr>`).join('')}</m:m>`;
+            
+            // Если pmatrix -> оборачиваем в адаптивные круглые скобки
+            if (node.env === 'p') {
+                return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            }
+            // Если bmatrix -> оборачиваем в адаптивные квадратные скобки
+            if (node.env === 'b') {
+                return `<m:d><m:dPr><m:begChr w:val="["/><m:endChr w:val="]"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            }
+            // Обычная матрица без скобок
+            return table;
+        }
+        
+        return '';
+    }).join('');
 }
