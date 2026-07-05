@@ -55,7 +55,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
     <!--StartFragment-->
     <!--[if gte msEquation 12]>
     <m:oMathPara>
-        ${currentOMML}
+        ${richOMML}
     </m:oMathPara>
     <![endif]-->
     <!--EndFragment-->
@@ -97,7 +97,7 @@ function handleDownload() {
 
     const wordXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <?mso-application progid="Word.Document"?>
-<w:wordDocument xmlns:w="http://microsoft.com" xmlns:m="http://openxmlformats.org" xml:space="preserve">
+<w:wordDocument xmlns:w="http://schemas.microsoft.com/office/2004/12/omml" xmlns:m="http://schemas.microsoft.com/office/2004/12/omml" xml:space="preserve">
     <w:body>
         <w:p><w:r><w:t>Формула, созданная на GitHub Pages:</w:t></w:r></w:p>
         <w:p>${currentOMML}</w:p>
