@@ -45,3 +45,53 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnDownload').addEventListener('click', handleDownload);
     handleConvert(); // Первичный запуск
 });
+
+async function handleCopyWord() {
+    if (!currentOMML) {
+        alert("Сначала сгенерируйте формулу!");
+        return;
+    }
+
+    // Собираем минимальный работающий шаблон на основе вашего дампа Word 14
+    const htmlPayload = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
+xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="Microsoft Word 14">
+</head>
+<body>
+    <!--StartFragment-->
+    <!--[if gte msEquation 12]>
+    <m:oMathPara>
+        ${currentOMML}
+    </m:oMathPara>
+    <![endif]-->
+    <!--EndFragment-->
+</body>
+</html>`.trim();
+
+    try {
+        const blob = new Blob([htmlPayload], { type: "text/html" });
+        const data = [new ClipboardItem({ "text/html": blob })];
+        
+        await navigator.clipboard.write(data);
+        
+        const btn = document.getElementById('btnCopyWord');
+        const oldText = btn.textContent;
+        btn.textContent = "✓ Успешно скопировано!";
+        btn.style.backgroundColor = "#107c41";
+        
+        setTimeout(() => {
+            btn.textContent = oldText;
+            btn.style.backgroundColor = "#217346";
+        }, 2000);
+
+    } catch (err) {
+        console.error("Ошибка буфера: ", err);
+        alert("Кликните по странице и попробуйте еще раз (требуется фокус пользователя).");
+    }
+}
