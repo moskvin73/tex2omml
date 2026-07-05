@@ -54,7 +54,6 @@ function preprocessTeX(tex, format) {
     return res;
 }
 
-// Помощник для разбора строк и столбцов матрицы TeX
 function parseMatrixContent(content, format) {
     const rows = content.split(/\\\\/);
     let xmlResult = '';
@@ -94,18 +93,10 @@ export function texToMathML(tex, isSubCall = false) {
     str = str.replace(/\\left\(/g, '<mo maxsize="100%">&#x0028;</mo>');
     str = str.replace(/\\right\)/g, '<mo maxsize="100%">&#x0029;</mo>');
 
-    while (str.includes('\\frac')) {
-        str = str.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '<mfrac><mrow>$1</mrow><mrow>$2</mrow></mfrac>');
-    }
-    
-    // Корень n-ой степени: \sqrt[3]{x}
-    while (str.includes('\\sqrt[')) {
-        str = str.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '<mroot><mrow>$2</mrow><mrow>$1</mrow></mroot>');
-    }
-    // Обычный квадратный корень
-    while (str.includes('\\sqrt')) {
-        str = str.replace(/\\sqrt\s*\{([^}]*)\}/g, '<msqrt><mrow>$1</mrow></msqrt>');
-    }
+    // Безопасная замена без while циклов
+    str = str.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '<mfrac><mrow>$1</mrow><mrow>$2</mrow></mfrac>');
+    str = str.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '<mroot><mrow>$2</mrow><mrow>$1</mrow></mroot>');
+    str = str.replace(/\\sqrt\s*\{([^}]*)\}/g, '<msqrt><mrow>$1</mrow></msqrt>');
     
     str = str.replace(/([A-Za-z0-9]+)\^\{([^}]*)\}/g, '<msup><mi>$1</mi><mrow>$2</mrow></msup>');
     str = str.replace(/([A-Za-z0-9]+)\^([A-Za-z0-9]+)/g, '<msup><mi>$1</mi><mi>$2</mi></msup>');
@@ -143,22 +134,12 @@ export function texToOMML(tex, isSubCall = false) {
         return mat;
     });
 
-    while (str.includes('\\left(')) {
-        str = str.replace(/\\left\((.*?)\\right\)/g, '<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>$1</m:e></m:d>');
-    }
-
-    while (str.includes('\\frac')) {
-        str = str.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '<m:f><m:num>$1</m:num><m:den>$2</m:den></m:f>');
-    }
-
-    // ИСПРАВЛЕНО: Корень n-ой степени (\sqrt[3]{x}) через m:rad
-    while (str.includes('\\sqrt[')) {
-        str = str.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '<m:rad><m:radPr></m:radPr><m:deg><m:r>$1</m:r></m:deg><m:e>$2</m:e></m:rad>');
-    }
-    // ИСПРАВЛЕНО: Обычный квадратный корень через чистый m:sRad (Square Radical) без пустой степени!
-    while (str.includes('\\sqrt')) {
-        str = str.replace(/\\sqrt\s*\{([^}]*)\}/g, '<m:sRad><m:sRadPr></m:sRadPr><m:e>$2$1</m:e></m:sRad>');
-    }
+    str = str.replace(/\\left\((.*?)\\right\)/g, '<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>$1</m:e></m:d>');
+    str = str.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, '<m:f><m:num>$1</m:num><m:den>$2</m:den></m:f>');
+    
+    // ИСПРАВЛЕНО: Теперь замена безопасна и не вызывает бесконечный цикл
+    str = str.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^}]*)\}/g, '<m:rad><m:radPr></m:radPr><m:deg><m:r>$1</m:r></m:deg><m:e>$2</m:e></m:rad>');
+    str = str.replace(/\\sqrt\s*\{([^}]*)\}/g, '<m:sRad><m:sRadPr></m:sRadPr><m:e>$1</m:e></m:sRad>');
     
     str = str.replace(/([A-Za-z0-9]+)\^\{([^}]*)\}/g, '<m:sSup><m:e><m:r>$1</m:r></m:e><m:sup>$2</m:sup></m:sSup>');
     str = str.replace(/([A-Za-z0-9]+)\^([A-Za-z0-9]+)/g, '<m:sSup><m:e><m:r>$1</m:r></m:e><m:sup>$2</m:sup></m:sSup>');
