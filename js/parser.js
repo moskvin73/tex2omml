@@ -69,9 +69,14 @@ class TeXParser {
         return tok;
     }
 
-    parse() {
+   parse() {
         const nodes = [];
-        while (this.peek().type !== 'EOF' && this.peek().type !== 'RBRACE' && this.peek().type !== 'NEWLINE' && this.peek().type !== 'ALIGN') {
+        // Парсим, пока не встретим конец файла или закрывающую фигурную скобку
+        while (this.pos < this.tokens.length) {
+            const t = this.peek().type;
+            if (t === 'EOF' || t === 'RBRACE' || t === 'RBRACKET' || t === 'ALIGN' || t === 'NEWLINE') {
+                break;
+            }
             nodes.push(this.parseExpression());
         }
         return nodes;
@@ -129,7 +134,8 @@ class TeXParser {
                 let deg = null;
                 if (this.peek().type === 'LBRACKET') {
                     this.consume('LBRACKET');
-                    deg = this.parse();
+                    // ИСПРАВЛЕНО: читаем только выражение внутри скобок, а не всю строку
+                    deg = [this.parseExpression()]; 
                     this.consume('RBRACKET');
                 }
                 this.consume('LBRACE');
