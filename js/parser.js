@@ -113,14 +113,23 @@ function renderMathML(nodes) {
     }).join('');
 }
 
-function renderOMML(nodes) {
+function renderOMML(nodes) { 
     if (!nodes) return '';
     return nodes.map(node => {
-        if (node.type === 'TextNode' || node.type === 'GreekNode') return `<m:r><m:t>${node.value}</m:t></m:r>`;
+        // ОБНОВЛЕНО: Разделяем переменные (курсив) и обычные знаки/цифры (прямой шрифт)
+        if (node.type === 'TextNode' || node.type === 'GreekNode') {
+            const val = node.value;
+            // Если это одиночная латинская буква (переменная), включаем для Word математический стиль
+            if (/^[A-Za-z]$/.test(val)) {
+                return `<m:r><m:rPr><m:sty m:val="p"/></m:rPr><m:t>${val}</m:t></m:r>`;
+            }
+            // Для цифр, операторов и греческих букв оставляем стандартный вид
+            return `<m:r><m:t>${val}</m:t></m:r>`;
+        }
+        
         if (node.type === 'GroupNode') return renderOMML(node.body);
         if (node.type === 'FractionNode') return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
         if (node.type === 'RadicalNode') {
-            // ИСПРАВЛЕНО ПО ВАШЕМУ ДАМПУ WORD 2010
             if (node.deg) return `<m:rad><m:radPr></m:radPr><m:deg>${renderOMML(node.deg)}</m:deg><m:e>${renderOMML(node.body)}</m:e></m:rad>`;
             return `<m:rad><m:radPr><m:degHide m:val="on"/></m:radPr><m:deg/><m:e>${renderOMML(node.body)}</m:e></m:rad>`;
         }
