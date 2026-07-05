@@ -1,4 +1,4 @@
-import { texToMathML, texToOMML } from './parser.js?v=4';
+import { texToMathML, texToOMML } from './parser.js?v=5';
 
 let currentOMML = "";
 
@@ -19,7 +19,7 @@ async function handleCopyWord() {
         return;
     }
 
-    // Шаблон на основе вашего дампа Word 14
+    // Добавляем глобальные стили для Word: Cambria Math, курсив, размер 12pt
     const htmlPayload = `
 <html xmlns:o="urn:schemas-microsoft-com:office:office"
 xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -29,6 +29,14 @@ xmlns="http://www.w3.org/TR/REC-html40">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="ProgId" content="Word.Document">
 <meta name="Generator" content="Microsoft Word 14">
+<style>
+  /* Принудительно задаем для всех элементов формулы Word родной курсив и шрифт */
+  m\\:r {
+    font-family: "Cambria Math", "serif";
+    font-size: 12.0pt;
+    font-style: italic;
+  }
+</style>
 </head>
 <body>
     <!--StartFragment-->
@@ -42,8 +50,13 @@ xmlns="http://www.w3.org/TR/REC-html40">
 </html>`.trim();
 
     try {
-        const blob = new Blob([htmlPayload], { type: "text/html" });
-        const data = [new ClipboardItem({ "text/html": blob })];
+        const htmlBlob = new Blob([htmlPayload], { type: "text/html" });
+        const textBlob = new Blob([currentOMML], { type: "text/plain" });
+
+        const data = [new ClipboardItem({ 
+            "text/html": htmlBlob,
+            "text/plain": textBlob
+        })];
         
         await navigator.clipboard.write(data);
         
@@ -53,13 +66,13 @@ xmlns="http://www.w3.org/TR/REC-html40">
         btn.style.backgroundColor = "#107c41";
         
         setTimeout(() => {
-            btn.textContent = oldText;
+            btn.textContent = "Скопировано для Word (Ctrl+V)";
             btn.style.backgroundColor = "#217346";
         }, 2000);
 
     } catch (err) {
         console.error("Ошибка буфера: ", err);
-        alert("Кликните по странице и попробуйте еще раз (требуется фокус пользователя).");
+        alert("Кликните по странице и попробуйте еще раз.");
     }
 }
 
