@@ -528,7 +528,7 @@ class TeXParser {
     let sub = null; // Для хранения нижнего индекса
     let sup = null; // Для хранения верхнего индекса
 
-    // Цикл работает, пока сразу за элементом идут знаки индексов (например, x_i^2)
+    // Проверяем первый символ индекса сразу за базой
     while (this.currentToken.type === TokenType.OPERATOR && 
           (this.currentToken.value === '^' || this.currentToken.value === '_')) {
       
@@ -537,18 +537,19 @@ class TeXParser {
 
       let scriptContent = [];
       
-      // Если индекс обернут в скобки (например, x^{2n}), парсим все содержимое скобок
+      // Если индекс обернут в скобки (например, x^{2}), парсим все внутри скобок
       if (this.currentToken.type === TokenType.LBRACE) {
         this.eat(TokenType.LBRACE);
         scriptContent = this.parseGroupContent();
         this.eat(TokenType.RBRACE);
       } else {
         // Если индекс без скобок (например, x^2), берем строго один атомарный элемент
-        const prim = this.parseMathExpression();
+        // Используем parsePrimaryMathElement, чтобы не уйти в бесконечную рекурсию
+        const prim = this.parsePrimaryMathElement();
         if (prim) scriptContent.push(prim);
       }
 
-      // Записываем индекс в нужную переменную и проверяем на классическую ошибку TeX
+      // Записываем индекс и проверяем на повторения
       if (isSup) {
         if (sup) {
           this.errors.add("Двойной верхний индекс запрещен в TeX. Используйте группировку {...}", this.currentToken);
@@ -562,7 +563,7 @@ class TeXParser {
       }
     }
 
-    // Возвращаем правильный комбинированный тип узла под ваши рендереры MathML/OMML
+    // Возвращаем правильный скомбинированный или одиночный узел индекса
     if (sub && sup) {
       return { type: 'SubSupNode', base: baseNode, sub: sub, sup: sup };
     } else if (sup) {
@@ -572,7 +573,7 @@ class TeXParser {
     }
     return baseNode;
   }
-
+  
   // 2. Разбор матриц и окружений типа \begin{matrix} ... \end{matrix}
   parseMatrixRows(envName) {
     const rows = [];
