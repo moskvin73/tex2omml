@@ -573,7 +573,7 @@ class TeXParser {
     }
     return baseNode;
   }
-  
+
   // 2. Разбор матриц и окружений типа \begin{matrix} ... \end{matrix}
   parseMatrixRows(envName) {
     const rows = [];
@@ -706,6 +706,14 @@ function renderOMML(nodes) {
 
 export function texToMathML(tex) {
     try {
+
+ console.log("Сырые токены из лексера:", lexer.tokenize()); 
+    
+    // Сбрасываем курсор лексера обратно в 0 после отладочного tokenize()
+    lexer.cursor = 0; 
+    lexer.currentLine = 1;
+    lexer.currentColumn = 1;
+          
         // 1. Создаем лексер и сборщик ошибок (в режиме мгновенного падения)
         const lexer = new TeXLexer(tex);
         const errorCollector = new TeXErrorCollector('failFast');
