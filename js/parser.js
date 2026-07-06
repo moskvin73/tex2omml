@@ -177,10 +177,10 @@ function renderOMML(nodes) {
             if (/^[A-Za-z]$/.test(val)) {
                 return `<m:r><m:t><i><span style='font-size:12.0pt;font-family:"Cambria Math","serif";mso-fareast-font-family:"Times New Roman";mso-bidi-font-family:"Times New Roman";'>${val}</span></i></m:t></m:r>`;
             }
-            return `<m:r><m:t><span style='font-size:12.0pt;font-family:"Cambria Math","serif";'>${val}</span></m:t></m:r>`;
+            return `<m:r><m:t><span style='font-family:"Cambria Math","serif";'>${val}</span></m:t></m:r>`;
         }
         if (node.type === 'PlainTextNode') {
-            return `<m:r><m:t><span style='font-size:12.0pt;font-family:"Cambria Math","serif";'>${node.value}</span></m:t></m:r>`;
+            return `<m:r><m:t><span style='font-family:"Cambria Math","serif";'>${node.value}</span></m:t></m:r>`;
         }
         if (node.type === 'GroupNode') return renderOMML(node.body);
         if (node.type === 'FractionNode') return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
