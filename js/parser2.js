@@ -187,32 +187,150 @@ class TeXErrorCollector {
 }
 
 const TeXSymbols = {
-  // Греческие буквы и спецсимволы (MathSymbolNode)
+  // ==========================================
+  // 1. ГРЕЧЕСКИЙ АЛФАВИТ (MathSymbolNode)
+  // ==========================================
+  // Строчные
   '\\alpha': { type: 'MathSymbolNode', val: 'α' },
   '\\beta': { type: 'MathSymbolNode', val: 'β' },
   '\\gamma': { type: 'MathSymbolNode', val: 'γ' },
   '\\delta': { type: 'MathSymbolNode', val: 'δ' },
   '\\epsilon': { type: 'MathSymbolNode', val: 'ε' },
+  '\\varepsilon': { type: 'MathSymbolNode', val: 'ϵ' },
+  '\\zeta': { type: 'MathSymbolNode', val: 'ζ' },
+  '\\eta': { type: 'MathSymbolNode', val: 'η' },
+  '\\theta': { type: 'MathSymbolNode', val: 'θ' },
+  '\\vartheta': { type: 'MathSymbolNode', val: 'ϑ' },
+  '\\iota': { type: 'MathSymbolNode', val: 'ι' },
+  '\\kappa': { type: 'MathSymbolNode', val: 'κ' },
+  '\\lambda': { type: 'MathSymbolNode', val: 'λ' },
+  '\\mu': { type: 'MathSymbolNode', val: 'μ' },
+  '\\nu': { type: 'MathSymbolNode', val: 'ν' },
+  '\\xi': { type: 'MathSymbolNode', val: 'ξ' },
+  '\\pi': { type: 'MathSymbolNode', val: 'π' },
+  '\\rho': { type: 'MathSymbolNode', val: 'ρ' },
+  '\\sigma': { type: 'MathSymbolNode', val: 'σ' },
+  '\\tau': { type: 'MathSymbolNode', val: 'τ' },
+  '\\upsilon': { type: 'MathSymbolNode', val: 'υ' },
   '\\phi': { type: 'MathSymbolNode', val: 'φ' },
-  '\\omega': { type: 'MathSymbolNode', val: 'ω', },
+  '\\varphi': { type: 'MathSymbolNode', val: 'ϕ' },
+  '\\chi': { type: 'MathSymbolNode', val: 'χ' },
+  '\\psi': { type: 'MathSymbolNode', val: 'ψ' },
+  '\\omega': { type: 'MathSymbolNode', val: 'ω' },
+  // Заглавные
+  '\\Gamma': { type: 'MathSymbolNode', val: 'Γ' },
+  '\\Delta': { type: 'MathSymbolNode', val: 'Δ' },
+  '\\Theta': { type: 'MathSymbolNode', val: 'Θ' },
+  '\\Lambda': { type: 'MathSymbolNode', val: 'Λ' },
+  '\\Xi': { type: 'MathSymbolNode', val: 'Ξ' },
+  '\\Pi': { type: 'MathSymbolNode', val: 'Π' },
+  '\\Sigma': { type: 'MathSymbolNode', val: 'Σ' },
+  '\\Upsilon': { type: 'MathSymbolNode', val: 'Υ' },
+  '\\Phi': { type: 'MathSymbolNode', val: 'Φ' },
+  '\\Psi': { type: 'MathSymbolNode', val: 'Ψ' },
   '\\Omega': { type: 'MathSymbolNode', val: 'Ω' },
-  
-  // Именованные математические операторы и стрелки (OperatorNode)
-  '\\rightarrow': { type: 'OperatorNode', val: '→' },
-  '\\to': { type: 'OperatorNode', val: '→' },
-  '\\cdot': { type: 'OperatorNode', val: '·' },
-  '\\neq': { type: 'OperatorNode', val: '≠' },
-  '\\le': { type: 'OperatorNode', val: '≤' },
-  '\\ge': { type: 'OperatorNode', val: '≥' },
 
-  // Стандартные математические функции (FunctionNode)
+  // ==========================================
+  // 2. СТАНДАРТНЫЕ ФУНКЦИИ (FunctionNode)
+  // ==========================================
+  // Тригонометрия
   '\\sin': { type: 'FunctionNode', val: 'sin' },
   '\\cos': { type: 'FunctionNode', val: 'cos' },
   '\\tan': { type: 'FunctionNode', val: 'tan' },
-  '\\tg': { type: 'FunctionNode', val: 'tg' },
+  '\\cot': { type: 'FunctionNode', val: 'cot' },
+  '\\sec': { type: 'FunctionNode', val: 'sec' },
+  '\\csc': { type: 'FunctionNode', val: 'csc' },
+  '\\tg': { type: 'FunctionNode', val: 'tg' },   // Русская традиция
+  '\\ctg': { type: 'FunctionNode', val: 'ctg' }, // Русская традиция
+  // Обратные тригонометрические
+  '\\arcsin': { type: 'FunctionNode', val: 'arcsin' },
+  '\\arccos': { type: 'FunctionNode', val: 'arccos' },
+  '\\arctan': { type: 'FunctionNode', val: 'arctan' },
+  '\\arctg': { type: 'FunctionNode', val: 'arctg' },
+  // Гиперболические
+  '\\sinh': { type: 'FunctionNode', val: 'sinh' },
+  '\\cosh': { type: 'FunctionNode', val: 'cosh' },
+  '\\tanh': { type: 'FunctionNode', val: 'tanh' },
+  '\\coth': { type: 'FunctionNode', val: 'coth' },
+  // Логарифмы, пределы и база
   '\\ln': { type: 'FunctionNode', val: 'ln' },
   '\\log': { type: 'FunctionNode', val: 'log' },
-  '\\lim': { type: 'FunctionNode', val: 'lim' }
+  '\\lg': { type: 'FunctionNode', val: 'lg' },
+  '\\lim': { type: 'FunctionNode', val: 'lim' },
+  '\\exp': { type: 'FunctionNode', val: 'exp' },
+  '\\det': { type: 'FunctionNode', val: 'det' },
+  '\\deg': { type: 'FunctionNode', val: 'deg' },
+  '\\arg': { type: 'FunctionNode', val: 'arg' },
+  '\\dim': { type: 'FunctionNode', val: 'dim' },
+  '\\hom': { type: 'FunctionNode', val: 'hom' },
+  '\\ker': { type: 'FunctionNode', val: 'ker' },
+  '\\max': { type: 'FunctionNode', val: 'max' },
+  '\\min': { type: 'FunctionNode', val: 'min' },
+  '\\sup': { type: 'FunctionNode', val: 'sup' },
+  '\\inf': { type: 'FunctionNode', val: 'inf' },
+  '\\gcd': { type: 'FunctionNode', val: 'gcd' },
+
+  // ==========================================
+  // 3. МАТЕМАТИЧЕСКИЕ ОПЕРАТОРЫ И СТРЕЛКИ (OperatorNode)
+  // ==========================================
+  // Стрелки
+  '\\rightarrow': { type: 'OperatorNode', val: '→' },
+  '\\to': { type: 'OperatorNode', val: '→' },
+  '\\leftarrow': { type: 'OperatorNode', val: '←' },
+  '\\leftrightarrow': { type: 'OperatorNode', val: '↔' },
+  '\\Rightarrow': { type: 'OperatorNode', val: '⇒' },
+  '\\Leftarrow': { type: 'OperatorNode', val: '⇐' },
+  '\\Leftrightarrow': { type: 'OperatorNode', val: '⇔' },
+  '\\uparrow': { type: 'OperatorNode', val: '↑' },
+  '\\downarrow': { type: 'OperatorNode', val: '↓' },
+  // Знаки отношений и сравнения
+  '\\le': { type: 'OperatorNode', val: '≤' },
+  '\\leq': { type: 'OperatorNode', val: '≤' },
+  '\\ge': { type: 'OperatorNode', val: '≥' },
+  '\\geq': { type: 'OperatorNode', val: '≥' },
+  '\\neq': { type: 'OperatorNode', val: '≠' },
+  '\\ne': { type: 'OperatorNode', val: '≠' },
+  '\\approx': { type: 'OperatorNode', val: '≈' },
+  '\\sim': { type: 'OperatorNode', val: '~' },
+  '\\equiv': { type: 'OperatorNode', val: '≡' },
+  '\\propto': { type: 'OperatorNode', val: '∝' },
+  '\\parallel': { type: 'OperatorNode', val: '∥' },
+  '\\perp': { type: 'OperatorNode', val: '⊥' },
+  // Бинарные операции и знаки умножения/деления
+  '\\cdot': { type: 'OperatorNode', val: '·' },
+  '\\times': { type: 'OperatorNode', val: '×' },
+  '\\div': { type: 'OperatorNode', val: '÷' },
+  '\\pm': { type: 'OperatorNode', val: '±' },
+  '\\mp': { type: 'OperatorNode', val: '∓' },
+  '\\ast': { type: 'OperatorNode', val: '∗' },
+  '\\star': { type: 'OperatorNode', val: '★' },
+  '\\circ': { type: 'OperatorNode', val: '◦' },
+  '\\bullet': { type: 'OperatorNode', val: '•' },
+  // Множества и логика
+  '\\in': { type: 'OperatorNode', val: '∈' },
+  '\\notin': { type: 'OperatorNode', val: '∉' },
+  '\\subset': { type: 'OperatorNode', val: '⊂' },
+  '\\supset': { type: 'OperatorNode', val: '⊃' },
+  '\\subseteq': { type: 'OperatorNode', val: '⊆' },
+  '\\supseteq': { type: 'OperatorNode', val: '⊇' },
+  '\\cap': { type: 'OperatorNode', val: '∩' },
+  '\\cup': { type: 'OperatorNode', val: '∪' },
+  '\\setminus': { type: 'OperatorNode', val: '∖' },
+  '\\forall': { type: 'OperatorNode', val: '∀' },
+  '\\exists': { type: 'OperatorNode', val: '∃' },
+  '\\empty': { type: 'OperatorNode', val: '∅' },
+  '\\emptyset': { type: 'OperatorNode', val: '∅' },
+  '\\nabla': { type: 'OperatorNode', val: '∇' },
+  '\\partial': { type: 'OperatorNode', val: '∂' },
+  
+  // Крупные исчисления (К ним индексы лепятся сверху и снизу автоматически)
+  '\\sum': { type: 'OperatorNode', val: '∑' },
+  '\\prod': { type: 'OperatorNode', val: '∏' },
+  '\\int': { type: 'OperatorNode', val: '∫' },
+  '\\iint': { type: 'OperatorNode', val: '∬' },
+  '\\iiint': { type: 'OperatorNode', val: '∭' },
+  '\\oint': { type: 'OperatorNode', val: '∮' },
+  '\\infty': { type: 'OperatorNode', val: '∞' }
 };
 
 class TeXParser {
