@@ -1113,7 +1113,7 @@ function renderOMML(nodes) {
             for (let i = 0; i < maxCols; i++) {
                 mcs += '<m:mc><m:mcPr><m:count m:val="1"/><m:mcJc m:val="center"/></m:mcPr></m:mc>';
             }
-            mcs += '</mcs>';
+            mcs += '</m:mcs>';
 
             // 3. Формируем блок свойств матрицы (задаем выравнивание по центру и явный интервал colSpc)
             const mPr = `<m:mPr>` +
