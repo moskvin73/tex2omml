@@ -1195,23 +1195,27 @@ function renderOMML(nodes) {
         if (node.type === 'SeparatorNode')  return '';
         if (node.type === 'GroupNode') return renderOMML(node.body);
         if (node.type === 'FractionNode')  {
-           let fType = 'bar'; // По умолчанию обычная горизонтальная
+             let fType = 'bar'; // По умолчанию обычная горизонтальная
             let isSmall = false;
 
             if (node.subType === 'skewed') fType = 'skw'; // диагональная дробь
             if (node.subType === 'linear') fType = 'lin'; // линейная дробь
             if (node.subType === 'small') isSmall = true;  // \tfrac
 
-            let fPr = `<m:fPr><m:fType m:val="${fType}"/></m:fPr>`;
+            // Собираем свойства дроби со строгим порядком тегов (сначала стиль, потом тип)
+            let fPr = '';
             if (isSmall) {
-                // Для маленькой дроби в Word включаем скриптовый (мелкий) стиль
-                fPr = `<m:fPr><m:fType m:val="bar"/><m:sty m:val="scr"/></m:fPr>`;
+                fPr = `<m:fPr><m:sty m:val="scr"/><m:fType m:val="bar"/></m:fPr>`;
+            } else if (fType !== 'bar') {
+                // Если тип отличается от стандартного bar (например, skw или lin), добавляем свойства
+                fPr = `<m:fPr><m:fType m:val="${fType}"/></m:fPr>`;
             }
 
+            // Возвращаем строго вашу рабочую структуру элементов <m:num> и <m:den> без лишних <m:e>
             return `<m:f>` +
                 fPr +
-                `<m:num><m:e>${renderOMML(node.num)}</m:e></m:num>` +
-                `<m:den><m:e>${renderOMML(node.den)}</m:e></m:den>` +
+                `<m:num>${renderOMML(node.num)}</m:num>` +
+                `<m:den>${renderOMML(node.den)}</m:den>` +
             `</m:f>`;
 
           //return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
