@@ -988,7 +988,6 @@ function renderMathML(nodes) {
     }).join('');
 }
 
-const span_omml = `<span style='font-family:"Cambria Math","serif";'>`;
 
 function renderOMML(nodes) {
     if (!nodes) return '';
