@@ -25,7 +25,8 @@ const TokenType = Object.freeze({
   MATH_VAR: 21,
   NON_LATIN_CHAR: 22,
   PUNCTUATION: 23,
-  UNKNOWN: 24
+  UNKNOWN: 24,
+  GREEK_CHAR: 25
 });
 
 // 2. Массив для расшифровки ID токенов в понятные строки (только для логов и ошибок)
