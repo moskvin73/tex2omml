@@ -907,7 +907,10 @@ function renderMathML(nodes) {
             if (node.sup) {
                 return `<mover><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sup)}</mrow></mover>`;
             }
-        }        
+        }
+        if (node.type === 'FencedNode') {
+          return `<mfenced open="${node.open}" close="${node.close}"><mrow>${renderMathML(node.body)}</mrow></mfenced>`;
+        }
         if (node.type === 'MatrixNode') {
             const table = `<mtable>${node.rows.map(r => `<mtr><mtd><mrow>${renderMathML(r)}</mrow></mtd></mtr>`).join('')}</mtable>`;
             if (node.env === 'p' || node.env === 'pmatrix') return `<mo>&#x0028;</mo>${table}<mo>&#x0029;</mo>`;
@@ -991,7 +994,10 @@ function renderOMML(nodes) {
                 // Предел с верхней надписью: lim Upp
                 return `<m:limUpp><m:e>${renderOMML([node.base])}</m:e><m:lim>${renderOMML(node.sup)}</m:lim></m:limUpp>`;
             }
-        }     
+        }
+        if (node.type === 'FencedNode') {
+          return `<m:d><m:dPr><m:begChr w:val="${node.open}"/><m:endChr w:val="${node.close}"/><m:grow m:val="on"/></m:dPr><m:e>${renderOMML(node.body)}</m:e></m:d>`;
+        }
         if (node.type === 'MatrixNode') {
             const table = `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${node.rows.map(r => `<m:mr><m:e>${renderOMML(r)}</m:e></m:mr>`).join('')}</m:m>`;
             if (node.env === 'p' || node.env === 'pmatrix') return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${table}</m:e></m:d>`;
