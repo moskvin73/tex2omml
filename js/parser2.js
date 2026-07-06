@@ -1095,12 +1095,45 @@ function renderOMML(nodes) {
           return `<m:d><m:dPr><m:begChr m:val="${node.open}"/><m:endChr m:val="${node.close}"/><m:grow m:val="on"/></m:dPr><m:e>${renderOMML(node.body)}</m:e></m:d>`;
         }
         if (node.type === 'MatrixNode') {
-            const table = `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${node.rows.map(r => `<m:mr><m:e>${renderOMML(r)}</m:e></m:mr>`).join('')}</m:m>`;
-            if (node.env === 'p' || node.env === 'pmatrix') return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${table}</m:e></m:d>`;
-            if (node.env === 'b' || node.env === 'bmatrix') return `<m:d><m:dPr><m:begChr w:val="["/><m:endChr w:val="]"/></m:dPr><m:e>${table}</m:e></m:d>`;
-            if (node.env === 'cases') return `<m:d><m:dPr><m:begChr w:val="{"/><m:endChr w:val=""/></m:dPr><m:e>${table}</m:e></m:d>`;
+          // 1. Считаем максимальное количество колонок для генерации стилей (нужно для отступов)
+            const maxCols = node.rows.reduce((max, row) => Math.max(max, row.length), 0);
+            
+            // 2. Генерируем обязательные стили колонок матрицы (выравнивание по центру)
+            let mcs = '<m:mcs>';
+            for (let i = 0; i < maxCols; i++) {
+                mcs += '<m:mc><m:mcPr><m:count m:val="1"/><m:mcJc m:val="center"/></m:mcPr></m:mc>';
+            }
+            mcs += '</mcs>';
+
+            // 3. Формируем блок свойств матрицы (задаем выравнивание по центру и явный интервал colSpc)
+            const mPr = `<m:mPr>` +
+                `<m:baseJc m:val="center"/>` +
+                `<m:colSpc m:val="512"/>` + // Расстояние между колонками, чтобы они не схлопывались
+                mcs +
+            `</m:mPr>`;
+            
+            // 4. Генерируем тело матрицы: проходим по строкам, а внутри — по ячейкам
+            const table = `<m:m>${mPr}` + 
+                node.rows.map(row => {
+                    // Каждую ячейку cell (массив узлов) рендерим отдельно и оборачиваем в <m:e>
+                    const cellsXml = row.map(cell => `<m:e>${renderOMML(cell)}</m:e>`).join('');
+                    return `<m:mr>${cellsXml}</m:mr>`;
+                }).join('') + 
+            `</m:m>`;
+            
+            // 5. Обертки скобок для разных типов окружений (ИСПРАВЛЕНО: заменен w:val на m:val)
+            if (node.env === 'p' || node.env === 'pmatrix') {
+                return `<m:d><m:dPr><m:begChr m:val="("/><m:endChr m:val=")"/><m:grow m:val="on"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            }
+            if (node.env === 'b' || node.env === 'bmatrix') {
+                return `<m:d><m:dPr><m:begChr m:val="["/><m:endChr m:val="]"/><m:grow m:val="on"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            }
+            if (node.env === 'cases') {
+                return `<m:d><m:dPr><m:begChr m:val="{"/><m:endChr m:val=""/><m:grow m:val="on"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            }
+            
             return table;
-        }
+          }
         return '';
     }).join('');
 }
