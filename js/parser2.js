@@ -26,7 +26,9 @@ const TokenType = Object.freeze({
   NON_LATIN_CHAR: 22,
   PUNCTUATION: 23,
   UNKNOWN: 24,
-  GREEK_CHAR: 25
+  GREEK_CHAR: 25,
+  LEFT_BRACKET_CMD: 26,
+  RIGHT_BRACKET_CMD: 27
 }); 
 
 // 2. Массив для расшифровки ID токенов в понятные строки (только для логов и ошибок)
@@ -68,6 +70,10 @@ class TeXLexer {
 
       // Неразрывный пробел
       { type: TokenType.NBSP, regex: /~/yu }, // ~
+
+      // Маркеры масштабируемых скобок (Обязательно ВЫШЕ общего правила COMMAND)
+      { type: TokenType.LEFT_BRACKET_CMD, regex: /\\left/yu },
+      { type: TokenType.RIGHT_BRACKET_CMD, regex: /\\right/yu },      
 
       // Общие команды TeX (Макросы). Слэш + латинские буквы ИЛИ слэш + 1 любой символ
       { type: TokenType.COMMAND, regex: /\\[a-zA-Z]+|\\[^a-zA-Z]/yu },
