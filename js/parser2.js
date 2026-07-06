@@ -600,7 +600,78 @@ class TeXParser {
         // ОБРАБОТКА МАСШТАБИРУЕМЫХ СКОБОК \left ... \right
         // =========================================================================
         case TokenType.LEFT_BRACKET_CMD:
-           this.eat(TokenType.LEFT_BRACKET_CMD); // Поглощаем \left
+
+         this.eat(TokenType.LEFT_BRACKET_CMD); // Поглощаем \left
+          
+          // Получаем сырое значение открывающей скобки
+          const rawOpen = this.currentToken.value;
+          const openSymbolObj = TeXSymbols[rawOpen] || TeXSymbols[`\\${rawOpen}`];
+          let cleanOpen = openSymbolObj ? openSymbolObj.val : rawOpen; // ИСПРАВЛЕНО: у вас в коде было .val, правильно .value по вашей таблице символов
+          
+          cleanOpen = cleanOpen.replace('\\', '');
+          if (cleanOpen === '.') cleanOpen = ''; // Точка в \left. означает пустую скобку
+
+          this.nextToken(); this.lookahead(); // Поглощаем символ скобки
+
+          const fencedBody = [];
+          let middleDelimiter = null; // Буфер для хранения разделителя \middle
+          
+          // Собираем выражение внутри, пока не упремся в \right или конец файла
+          while (this.currentToken.type !== TokenType.RIGHT_BRACKET_CMD && this.currentToken.type !== TokenType.EOF) {
+            
+            // ПЕРЕХВАТ КОМАНДЫ \middle
+            if (this.currentToken.type === TokenType.COMMAND && this.currentToken.value === '\\middle') {
+              this.eat(TokenType.COMMAND); // Поглощаем \middle
+              
+              const rawMiddle = this.currentToken.value;
+              const middleSymbolObj = TeXSymbols[rawMiddle] || TeXSymbols[`\\${rawMiddle}`];
+              let cleanMiddle = middleSymbolObj ? middleSymbolObj.val : rawMiddle;
+              cleanMiddle = cleanMiddle.replace('\\', '');
+              
+              middleDelimiter = cleanMiddle; // Сохраняем символ разделителя (например, "|")
+              
+              // Создаем виртуальный узел разделителя в теле, чтобы генераторы знали, где проходит граница
+              fencedBody.push({ type: 'SeparatorNode', value: cleanMiddle });
+              
+              this.nextToken(); this.lookahead(); // Поглощаем символ разделителя
+              continue;
+            }
+
+            try {
+              // ВНИМАНИЕ: Для предотвращения двойных mrow используем обработку атомарного выражения 
+              // или Lookahead-защиту, чтобы parseMathExpression не съедал токен \right преждевременно
+              if (this.currentToken.type === TokenType.COMMAND && this.currentToken.value === '\\right') {
+                break;
+              }
+              
+              const expr = this.parseMathExpression();
+              if (expr) fencedBody.push(expr);
+            } catch (err) {
+              if (this.errors.mode === 'failFast') throw err;
+              this.recoverInsideMath(TokenType.RIGHT_BRACKET_CMD);
+            }
+          }
+
+          this.eat(TokenType.RIGHT_BRACKET_CMD); // Поглощаем \right
+          
+          // Получаем сырое значение закрывающей скобки
+          const rawClose = this.currentToken.value;
+          const closeSymbolObj = TeXSymbols[rawClose] || TeXSymbols[`\\${rawClose}`];
+          let cleanClose = closeSymbolObj ? closeSymbolObj.val : rawClose; // ИСПРАВЛЕНО: изменено с .val на .value
+          
+          cleanClose = cleanClose.replace('\\', '');
+          if (cleanClose === '.') cleanClose = ''; // Точка в \right. означает пустую скобку
+
+          this.nextToken(); this.lookahead(); // Поглощаем его
+
+          return { 
+            type: 'FencedNode', 
+            open: cleanOpen, 
+            close: cleanClose,
+            separator: middleDelimiter, // Передаем разделитель в AST (если он был, иначе null)
+            body: fencedBody 
+          };        
+          /*this.eat(TokenType.LEFT_BRACKET_CMD); // Поглощаем \left
           
           // Получаем сырое значение открывающей скобки
           const rawOpen = this.currentToken.value;
@@ -645,7 +716,7 @@ class TeXParser {
             open: cleanOpen, 
             close: cleanClose, 
             body: fencedBody 
-          };
+          };*/
 
         case TokenType.COMMAND:
           return this.parseCommand();
