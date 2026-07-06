@@ -515,6 +515,13 @@ class TeXParser {
           this.nextToken(); this.lookahead();
           return { type: 'VariableNode', value: token.value };
 
+        // ОБРАБОТКА ЖИВОЙ ГРЕЧЕСКОЙ БУКВЫ ИЗ ЛЕКСЕРА:
+        case TokenType.GREEK_CHAR:
+          const greekChar = token.value;
+          this.nextToken(); this.lookahead();
+          // Сразу отдаем в рендерер как правильный математический символ
+          return { type: 'MathSymbolNode', value: greekChar };          
+
         case TokenType.OPERATOR:
           this.nextToken(); this.lookahead();
           return { type: 'OperatorNode', value: token.value };
