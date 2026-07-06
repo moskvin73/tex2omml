@@ -30,30 +30,55 @@ class TeXParser {
     peek() { return this.tokens[this.pos]; }
     consume(type) { const tok = this.peek(); if (type && tok.type !== type) throw new Error(`Error: ${type}`); this.pos++; return tok; }
     parse() {
-        const nodes = [];
+       const nodes = [];
         while (this.pos < this.tokens.length) {
             const t = this.peek().type;
-            if (t === 'EOF' || t === 'RBRACE' || t === 'RBRACKET' || t === 'ALIGN' || t === 'NEWLINE') break;
+            if (t === 'EOF' || t === 'RBRACE' || t === 'RBRACKET' || t === 'ALIGN' || t === 'NEWLINE') {
+                break;
+            }
             nodes.push(this.parseExpression());
         }
         return nodes;
     }
     parseExpression() {
-        let node = this.peek().type === 'LBRACE' ? null : this.parsePrimary();
-        
-        // Если база была группой в фигурных скобках, проверим, не пустая ли она
-        if (node === null && this.peek().type === 'LBRACE') {
+       let node = null;
+
+        // ПРОВЕРКА НА ХИМИЮ: Если формула начинается с пустой группы {} перед индексами
+        if (this.peek().type === 'LBRACE' && this.tokens[this.pos + 1] && this.tokens[this.pos + 1].type === 'RBRACE') {
             this.consume('LBRACE');
-            const innerNodes = this.parse();
             this.consume('RBRACE');
-            // Если внутри ничего нет - это пустая группа {} для левых индексов
-            if (innerNodes.length === 0) {
-                node = { type: 'EmptyBaseNode' };
-            } else {
-                node = { type: 'GroupNode', body: innerNodes };
+            
+            // Считываем левые индексы (например, _6^{12})
+            let sub = null;
+            let sup = null;
+            
+            while (this.peek().type === 'CHAR' && (this.peek().value === '^' || this.peek().value === '_')) {
+                const op = this.consume('CHAR').value;
+                let script = null;
+                if (this.peek().type === 'LBRACE') {
+                    this.consume('LBRACE'); script = this.parse(); this.consume('RBRACE');
+                } else {
+                    script = [this.parsePrimary()];
+                }
+                if (op === '_') sub = script;
+                if (op === '^') sup = script;
             }
+
+            // Следующий за индексами символ (например, 'C') становится базой для левых индексов
+            let baseNode = (this.peek().type !== 'EOF') ? this.parsePrimary() : { type: 'TextNode', value: '' };
+
+            return {
+                type: 'PreSubSupNode',
+                sub: sub,
+                sup: sup,
+                base: baseNode
+            };
         }
 
+        // ОБЫЧНАЯ ЛОГИКА: Сначала считываем нормальную базу (символ, команду или группу)
+        node = this.parsePrimary();
+
+        // Считываем идущие подряд правые индексы (^ и _) любой вложенности
         while (this.peek().type === 'CHAR' && (this.peek().value === '^' || this.peek().value === '_')) {
             const firstOp = this.consume('CHAR').value;
             let firstScript = null;
@@ -64,6 +89,7 @@ class TeXParser {
                 firstScript = [this.parsePrimary()];
             }
 
+            // Если следом идет второй индекс противоположного типа - собираем совмещенный SubSupNode
             if (this.peek().type === 'CHAR' && (this.peek().value === '^' || this.peek().value === '_') && this.peek().value !== firstOp) {
                 const secondOp = this.consume('CHAR').value;
                 let secondScript = null;
@@ -74,24 +100,14 @@ class TeXParser {
                     secondScript = [this.parsePrimary()];
                 }
 
-                // Проверяем: если база пустая, значит это ЛЕВЫЕ индексы (Химия)
-                if (node && node.type === 'EmptyBaseNode') {
-                    node = {
-                        type: 'PreSubSupNode',
-                        sub: firstOp === '_' ? firstScript : secondScript,
-                        sup: firstOp === '^' ? firstScript : secondScript,
-                        base: null // Базу привяжем на следующем шаге парсинга
-                    };
-                } else {
-                    // Обычные совмещенные индексы справа
-                    node = {
-                        type: 'SubSupNode',
-                        base: node,
-                        sub: firstOp === '_' ? firstScript : secondScript,
-                        sup: firstOp === '^' ? firstScript : secondScript
-                    };
-                }
+                node = {
+                    type: 'SubSupNode',
+                    base: node,
+                    sub: firstOp === '_' ? firstScript : secondScript,
+                    sup: firstOp === '^' ? firstScript : secondScript
+                };
             } else {
+                // Если индекс только один - создаем обычный одиночный верхний/нижний индекс
                 node = {
                     type: firstOp === '^' ? 'SupNode' : 'SubNode',
                     base: node,
@@ -99,12 +115,6 @@ class TeXParser {
                 };
             }
         }
-
-        // Если у нас сформировался узел левых индексов, следующий идущий символ (например, 'C') станет его базой!
-        if (node && node.type === 'PreSubSupNode' && node.base === null && this.peek().type !== 'EOF') {
-            node.base = this.parsePrimary();
-        }
-
         return node;
     }
     parsePrimary() {
