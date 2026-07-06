@@ -688,7 +688,7 @@ function renderOMML(nodes) {
     return nodes.map(node => {
         // Только VariableNode (латиница) получает тег курсива <i>
         if (node.type === 'VariableNode') {
-            return `<m:r><m:t><i><span style='font-size:12.0pt;font-family:"Cambria Math","serif";...'>${node.value}</span></i></m:t></m:r>`;
+            return `<m:r><m:t><i><span style='font-family:"Cambria Math","serif";'>${node.value}</span></i></m:t></m:r>`;
         }
         
         // Все остальные атомарные узлы выводятся строго ПРЯМЫМ шрифтом
