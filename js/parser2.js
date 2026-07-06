@@ -600,10 +600,19 @@ class TeXParser {
         // ОБРАБОТКА МАСШТАБИРУЕМЫХ СКОБОК \left ... \right
         // =========================================================================
         case TokenType.LEFT_BRACKET_CMD:
-          this.eat(TokenType.LEFT_BRACKET_CMD); // Поглощаем \left
+           this.eat(TokenType.LEFT_BRACKET_CMD); // Поглощаем \left
           
-          // Символ открывающей скобки (это может быть знак (, [, {, команду \{ и т.д.)
-          const openDelimiter = this.currentToken.value;
+          // Получаем сырое значение открывающей скобки
+          const rawOpen = this.currentToken.value;
+          // Пытаемся разыскать макрос в таблице символов, иначе оставляем символ как есть
+          // (Если лексер уже убрал бэкслеш, ищем по ключу `\\${rawOpen}`, если нет — по `rawOpen`)
+          const openSymbolObj = TeXSymbols[rawOpen] || TeXSymbols[`\\${rawOpen}`];
+          let cleanOpen = openSymbolObj ? openSymbolObj.value : rawOpen;
+          
+          // Дополнительная очистка, если это были простые экранированные скобки вроде \{
+          cleanOpen = cleanOpen.replace('\\', '');
+          if (cleanOpen === '.') cleanOpen = ''; // Точка в \left. означает пустую скобку
+
           this.nextToken(); this.lookahead(); // Поглощаем символ скобки
 
           const fencedBody = [];
@@ -621,21 +630,22 @@ class TeXParser {
 
           this.eat(TokenType.RIGHT_BRACKET_CMD); // Поглощаем \right
           
-          // Символ закрывающей скобки (например, ) или . )
-          const closeDelimiter = this.currentToken.value;
-          this.nextToken(); this.lookahead(); // Поглощаем его
+          // Получаем сырое значение закрывающей скобки
+          const rawClose = this.currentToken.value;
+          const closeSymbolObj = TeXSymbols[rawClose] || TeXSymbols[`\\${rawClose}`];
+          let cleanClose = closeSymbolObj ? closeSymbolObj.value : rawClose;
+          
+          cleanClose = cleanClose.replace('\\', '');
+          if (cleanClose === '.') cleanClose = ''; // Точка в \right. означает пустую скобку
 
-          // Очищаем скобки от слэшей для рендереров (например, '\{' превращаем в '{')
-          const cleanOpen = openDelimiter.replace('\\', '');
-          const cleanClose = closeDelimiter.replace('\\', '');
+          this.nextToken(); this.lookahead(); // Поглощаем его
 
           return { 
             type: 'FencedNode', 
             open: cleanOpen, 
-            // В TeX точка означает отсутствие скобки (для систем уравнений), передаем как пустую строку
-            close: cleanClose === '.' ? '' : cleanClose, 
+            close: cleanClose, 
             body: fencedBody 
-          };          
+          };
 
         case TokenType.COMMAND:
           return this.parseCommand();
