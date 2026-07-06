@@ -1135,6 +1135,12 @@ function renderMathML(nodes) {
             // Внутри — абсолютно плоский рендер содержимого без промежуточных слоёв
             return `<mrow><mo>${node.open}</mo>${renderMathML(node.body)}${closeBracket}</mrow>`;
         }
+
+        if (node.type === 'AccentNode') {
+            // Тег <mover> ставит знак акцента ровно НАД базовым символом
+            // Атрибут accent="true" сообщает браузеру, что это мелкий диакритический знак
+            return `<mover>${wrapInMrowIfNeeded(node.body)}<mo accent="true">${node.accent}</mo></mover>`;
+        }        
         
         if (node.type === 'MatrixNode') {
            // 1. Находим максимальное количество столбцов среди всех строк
@@ -1277,6 +1283,15 @@ function renderOMML(nodes) {
             `</m:d>`;          
           //return `<m:d><m:dPr><m:begChr m:val="${node.open}"/><m:endChr m:val="${node.close}"/><m:grow m:val="on"/></m:dPr><m:e>${renderOMML(node.body)}</m:e></m:d>`;
         }
+
+        if (node.type === 'AccentNode') {
+            // Нативный тег акцентов Ворда. Знак m:chr автоматически масштабируется и центрируется над телом
+            return `<m:acc>` +
+                `<m:accPr><m:chr m:val="${node.accent}"/></m:accPr>` +
+                `<m:e>${renderOMML(node.body)}</m:e>` +
+            `</m:acc>`;
+        }        
+
         if (node.type === 'MatrixNode') {
             // 1. Считаем максимальное количество колонок для генерации стилей
             const maxCols = node.rows.reduce((max, row) => Math.max(max, row.length), 0);
