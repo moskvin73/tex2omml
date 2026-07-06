@@ -50,7 +50,7 @@ class TeXLexer {
       { type: TokenType.NEWLINE, regex: /\r?\n|[\u2028\u2029]/yu },
       
       // Универсальные Юникод-пробелы (\p{White_Space}), исключая новые строки
-      { type: TokenType.WHITESPACE, regex: /[^\r\n\u2028\u2029&&[\p{White_Space}]]+/yu },
+      { type: TokenType.WHITESPACE, regex: /(?:(?![\r\n\u2028\u2029])\p{White_Space})+/yu },
 
       // Комментарии TeX (от % до конца строки)
       { type: TokenType.COMMENT, regex: /%[^\r\n\u2028\u2029]*/yu },
