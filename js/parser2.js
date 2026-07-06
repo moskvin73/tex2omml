@@ -1079,7 +1079,19 @@ function renderMathML(nodes) {
         if (node.type === 'GroupNode') return `<mrow>${renderMathML(node.body)}</mrow>`;
         
         if (node.type === 'FractionNode') {
-            return `<mfrac>${wrapInMrowIfNeeded(node.num)}${wrapInMrowIfNeeded(node.den)}</mfrac>`;
+            let attributes = '';
+            
+            // Настройка MathML под разные типы TeX-дробей
+            if (node.subType === 'skewed') {
+                attributes = ' bevelled="true"'; // Превращает горизонтальную дробь в диагональную /
+            } else if (node.subType === 'small') {
+                attributes = ' mathsize="small"';   // Уменьшает масштаб для \tfrac
+            } else if (node.subType === 'display') {
+                attributes = ' displaystyle="true"'; // Делает крупной \dfrac в любом окружении
+            }
+
+            return `<mfrac${attributes}>${wrapInMrowIfNeeded(node.num)}${wrapInMrowIfNeeded(node.den)}</mfrac>`;          
+            //return `<mfrac>${wrapInMrowIfNeeded(node.num)}${wrapInMrowIfNeeded(node.den)}</mfrac>`;
         }
         
         if (node.type === 'RadicalNode') {
@@ -1176,7 +1188,28 @@ function renderOMML(nodes) {
         }
         if (node.type === 'SeparatorNode')  return '';
         if (node.type === 'GroupNode') return renderOMML(node.body);
-        if (node.type === 'FractionNode') return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
+        if (node.type === 'FractionNode')  {
+           let fType = 'bar'; // По умолчанию обычная горизонтальная
+            let isSmall = false;
+
+            if (node.subType === 'skewed') fType = 'skw'; // диагональная дробь
+            if (node.subType === 'linear') fType = 'lin'; // линейная дробь
+            if (node.subType === 'small') isSmall = true;  // \tfrac
+
+            let fPr = `<m:fPr><m:fType m:val="${fType}"/></m:fPr>`;
+            if (isSmall) {
+                // Для маленькой дроби в Word включаем скриптовый (мелкий) стиль
+                fPr = `<m:fPr><m:fType m:val="bar"/><m:sty m:val="scr"/></m:fPr>`;
+            }
+
+            return `<m:f>` +
+                fPr +
+                `<m:num><m:e>${renderOMML(node.num)}</m:e></m:num>` +
+                `<m:den><m:e>${renderOMML(node.den)}</m:e></m:den>` +
+            `</m:f>`;
+
+          //return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
+        }
         if (node.type === 'RadicalNode') {
             if (node.deg) return `<m:rad><m:radPr></m:radPr><m:deg>${renderOMML(node.deg)}</m:deg><m:e>${renderOMML(node.body)}</m:e></m:rad>`;
             return `<m:rad><m:radPr><m:degHide m:val="on"/></m:radPr><m:deg/><m:e>${renderOMML(node.body)}</m:e></m:rad>`;
