@@ -372,7 +372,7 @@ const TeXSymbols = {
   // Вертикальные линии (Используются как обычные знаки и как скобки в \left/\right)
   '\\vert': { type: 'OperatorNode', val: '|' },
   '\\Vert': { type: 'OperatorNode', val: '‖' },
-  '\\|': { type: 'OperatorNode', val: '‖' },
+  '\\|': { type: 'OperatorNode', val: '|' },
   '\\mid': { type: 'OperatorNode', val: '|' }, // Используется для обозначения делимости или множеств {x | x > 0}  
 };
 
