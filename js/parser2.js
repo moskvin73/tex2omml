@@ -334,7 +334,9 @@ const TeXSymbols = {
   '\\iint': { type: 'OperatorNode', val: '∬' },
   '\\iiint': { type: 'OperatorNode', val: '∭' },
   '\\oint': { type: 'OperatorNode', val: '∮' },
-  '\\infty': { type: 'OperatorNode', val: '∞' }
+  '\\infty': { type: 'OperatorNode', val: '∞' },
+
+  '\\,': { type: 'OperatorNode', val: ' ' }, // Здесь внутри кавычек сидит Unicode тонкий пробел (Thin Space, U+2009)  
 };
 
 class TeXParser {
