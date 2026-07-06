@@ -832,11 +832,13 @@ class TeXParser {
 
   // 2. Разбор матриц и окружений типа \begin{matrix} ... \end{matrix}
   parseMatrixRows(envName) {
-    const rows = [];
-    let currentRow = [];
+     const rows = [];
+    let currentRowCells = []; // Массив ячеек в текущей строке
+    let currentCellNodes = []; // Массив узлов (AST) внутри текущей ячейки
 
     while (this.currentToken.type !== TokenType.EOF) {
-      // Проверяем, не дошли ли мы до закрывающего тега \end{имя_окружения}
+      
+      // 1. Проверяем завершение матрицы \end{...}
       if (this.currentToken.type === TokenType.COMMAND && this.currentToken.value === '\\end') {
         this.eat(TokenType.COMMAND);
         this.eat(TokenType.LBRACE);
@@ -848,48 +850,70 @@ class TeXParser {
         }
         this.eat(TokenType.RBRACE);
 
-        // Проверяем валидность структуры: имя в \begin должно строго совпадать с \end
         if (endEnvName !== envName) {
           this.errors.add(`Нарушена вложенность: открыто \\begin{${envName}}, но закрыто \\end{${endEnvName}}`, this.currentToken);
         }
 
-        // Перед выходом пушим последнюю строку, если в ней есть данные
-        if (currentRow.length > 0) rows.push(currentRow);
+        // Перед выходом сохраняем последнюю ячейку и последнюю строку
+        if (currentCellNodes.length > 0) {
+          currentRowCells.push(currentCellNodes);
+        }
+        if (currentRowCells.length > 0) {
+          rows.push(currentRowCells);
+        }
         return rows;
       }
 
-      // Перенос строки в матрице (команда \\)
+      // 2. Перенос строки матрицы (команда \\)
       if (this.currentToken.type === TokenType.COMMAND && this.currentToken.value === '\\\\') {
-        rows.push(currentRow); // Сохраняем готовую строку в массив строк матрицы
-        currentRow = [];       // Очищаем для следующей строки
         this.eat(TokenType.COMMAND);
+        
+        // Закрываем текущую ячейку и пушим её в строку
+        currentRowCells.push(currentCellNodes);
+        // Сохраняем всю строку ячеек в матрицу
+        rows.push(currentRowCells);
+        
+        // Сбрасываем буферы для новой строки
+        currentRowCells = [];
+        currentCellNodes = [];
         continue;
       }
 
-      // Разделитель ячеек в строке (знак &)
+      // 3. РАЗДЕЛИТЕЛЬ СТОЛБЦОВ (знак &) — теперь обрабатывается правильно!
       if (this.currentToken.type === TokenType.AMPERSAND) {
         this.eat(TokenType.AMPERSAND);
-        continue; // Просто пропускаем амперсанд, текущая ячейка продолжается или начнется новая
+        
+        // Текущая ячейка завершена, сохраняем её в строку
+        currentRowCells.push(currentCellNodes);
+        // Очищаем буфер узлов для следующей ячейки
+        currentCellNodes = [];
+        continue;
       }
 
-      // Игнорируем пробелы и переносы кода внутри матрицы
+      // Игнорируем пробелы
       if (this.currentToken.type === TokenType.WHITESPACE || this.currentToken.type === TokenType.NEWLINE) {
         this.nextToken();
         this.lookahead();
         continue;
       }
 
-      // Парсим обычные математические выражения внутри ячеек матрицы
+      // 4. Парсим одиночные элементы (токены) внутри конкретной ячейки
+      // Вместо жадного parseMathExpression собираем ячейку поатомно
       try {
-        const expr = this.parseMathExpression();
-        if (expr) currentRow.push(expr);
+        const expr = this.parseAtom(); // или parsePrimary(), parseFactor() вашего парсера
+        if (expr) currentCellNodes.push(expr);
       } catch (err) {
         if (this.errors.mode === 'failFast') throw err;
-        this.recoverInsideMath(TokenType.COMMAND); // Перематываем до следующей команды (например, \\ или \end)
+        // Перематываем до спецсимволов матрицы в случае ошибки
+        while (this.currentToken.type !== TokenType.AMPERSAND && 
+               this.currentToken.value !== '\\\\' && 
+               this.currentToken.value !== '\\end' && 
+               this.currentToken.type !== TokenType.EOF) {
+          this.nextToken();
+        }
       }
     }
 
-    // Если файл кончился, а \end не найден — это ошибка структуры
     this.errors.add(`Окружение \\begin{${envName}} не закрыто соответствующей командой \\end`, this.currentToken);
     return rows;
   }  
@@ -977,7 +1001,14 @@ function renderMathML(nodes) {
         }
         
         if (node.type === 'MatrixNode') {
-            const table = `<mtable>${node.rows.map(r => `<mtr><mtd>${wrapInMrowIfNeeded(r)}</mtd></mtr>`).join('')}</mtable>`;
+         // node.rows — это массив строк. Каждая строка r — это массив ячеек.
+            const table = `<mtable>` + 
+                node.rows.map(row => {
+                    const mtds = row.map(cell => `<mtd>${wrapInMrowIfNeeded(cell)}</mtd>`).join('');
+                    return `<mtr>${mtds}</mtr>`;
+                }).join('') + 
+            `</mtable>`;
+            
             if (node.env === 'p' || node.env === 'pmatrix') return `<mrow><mo>&#x0028;</mo>${table}<mo>&#x0029;</mo></mrow>`;
             if (node.env === 'b' || node.env === 'bmatrix') return `<mrow><mo>&#x005B;</mo>${table}<mo>&#x005D;</mo></mrow>`;
             if (node.env === 'cases') return `<mrow><mo>&#x007B;</mo>${table}</mrow>`;
