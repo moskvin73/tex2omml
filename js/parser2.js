@@ -607,7 +607,7 @@ class TeXParser {
           // Пытаемся разыскать макрос в таблице символов, иначе оставляем символ как есть
           // (Если лексер уже убрал бэкслеш, ищем по ключу `\\${rawOpen}`, если нет — по `rawOpen`)
           const openSymbolObj = TeXSymbols[rawOpen] || TeXSymbols[`\\${rawOpen}`];
-          let cleanOpen = openSymbolObj ? openSymbolObj.value : rawOpen;
+          let cleanOpen = openSymbolObj ? openSymbolObj.val : rawOpen;
           
           // Дополнительная очистка, если это были простые экранированные скобки вроде \{
           cleanOpen = cleanOpen.replace('\\', '');
@@ -633,7 +633,7 @@ class TeXParser {
           // Получаем сырое значение закрывающей скобки
           const rawClose = this.currentToken.value;
           const closeSymbolObj = TeXSymbols[rawClose] || TeXSymbols[`\\${rawClose}`];
-          let cleanClose = closeSymbolObj ? closeSymbolObj.value : rawClose;
+          let cleanClose = closeSymbolObj ? closeSymbolObj.val : rawClose;
           
           cleanClose = cleanClose.replace('\\', '');
           if (cleanClose === '.') cleanClose = ''; // Точка в \right. означает пустую скобку
