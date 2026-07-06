@@ -5,6 +5,8 @@ const GREEK_MAP = {
     'lambda': 'λ', 'pi': 'π', 'sigma': 'σ', 'omega': 'ω', 'Delta': 'Δ'
 };
 
+const MATH_FUNCTIONS = ['sin', 'cos', 'tan', 'ctg', 'lim', 'log', 'ln', 'max', 'min'];
+
 // 1. ЛЕКСИЧЕСКИЙ АНАЛИЗАТОР (ИСПРАВЛЕН)
 function tokenize(tex) {
     const tokens = []; let i = 0;
@@ -94,6 +96,10 @@ class TeXParser {
         const tok = this.peek();
         if (tok.type === 'CHAR' || tok.type === 'OPERATOR') { this.consume(); return { type: 'TextNode', value: tok.value }; }
         if (tok.type === 'COMMAND') {
+            if (MATH_FUNCTIONS.includes(tok.value)) {
+                this.consume(); // Потребляем токен функции, сдвигая указатель
+                return { type: 'PlainTextNode', value: tok.value + ' ' };
+            }            
             this.consume();
             if (tok.value === 'text') {
                 this.consume('LBRACE'); const body = [];
