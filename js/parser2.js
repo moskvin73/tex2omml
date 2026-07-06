@@ -705,14 +705,30 @@ function renderOMML(nodes) {
 
 export function texToMathML(tex) {
     try {
-        const tokens = tokenize(tex); const parser = new TeXParser(tokens); const ast = parser.parse();
+        // 1. Создаем лексер и сборщик ошибок (в режиме мгновенного падения)
+        const lexer = new TeXLexer(tex);
+        const errorCollector = new TeXErrorCollector('failFast');
+            
+        // 2. Инициализируем парсер и строим AST-дерево
+        const parser = new TeXParser(lexer, errorCollector);
+        const ast = parser.parse();
+
+        // const tokens = tokenize(tex); const parser = new TeXParser(tokens); const ast = parser.parse();
         return `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">${renderMathML(ast)}</math>`;
     } catch (e) { return `<span style="color:red;">Ошибка MathML: ${e.message}</span>`; }
 }
 
 export function texToOMML(tex) {
     try {
-        const tokens = tokenize(tex); const parser = new TeXParser(tokens); const ast = parser.parse();
+
+        // 1. Создаем лексер и сборщик ошибок
+        const lexer = new TeXLexer(tex);
+        const errorCollector = new TeXErrorCollector('failFast');
+        
+        // 2. Инициализируем парсер и строим AST-дерево
+        const parser = new TeXParser(lexer, errorCollector);
+        const ast = parser.parse();        
+        //const tokens = tokenize(tex); const parser = new TeXParser(tokens); const ast = parser.parse();
         return `<m:oMath>${renderOMML(ast)}</m:oMath>`;
     } catch (e) { return `<!-- Ошибка OMML: ${e.message} -->`; }
 }
