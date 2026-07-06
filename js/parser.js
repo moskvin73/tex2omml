@@ -174,6 +174,9 @@ function renderMathML(nodes) {
         if (node.type === 'PlainTextNode') {
             return `<mtext>${node.value}</mtext>`;
         }
+        if (node.type === 'SubSupNode') {
+            return `<msubsup><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></msubsup>`;
+        }        
         return '';
     }).join('');
 }
@@ -205,6 +208,10 @@ function renderOMML(nodes) {
         if (node.type === 'PlainTextNode') {
             // В OMML текст помечается обычным m:r без математических стилей
             return `<m:r><m:t>${node.value}</m:t></m:r>`;
+        }
+        if (node.type === 'SubSupNode') {
+            // Структура Word 2010 для совмещенных индексов справа
+            return `<m:sSubSup><m:sSubSupPr></m:sSubSupPr><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup></m:sSubSup>`;
         }        
         return '';
     }).join('');
