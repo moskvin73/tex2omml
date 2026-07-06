@@ -343,6 +343,25 @@ const TeXSymbols = {
   '\\!': { type: 'OperatorNode', val: '' },  // Отрицательный пробел (ужимает текст, в Юникоде аналога нет, делаем пустым)
   '\\quad': { type: 'OperatorNode', val: ' ' }, // Широкий пробел (Размером в букву M, U+2003)
   '\\qquad': { type: 'OperatorNode', val: '  ' }, // Удвоенный широкий пробел  
+
+  '\\{': { type: 'OperatorNode', val: '{' },
+  '\\}': { type: 'OperatorNode', val: '}' },
+  '\\%': { type: 'OperatorNode', val: '%' },
+  '\\&': { type: 'OperatorNode', val: '&' },
+  '\\_': { type: 'OperatorNode', val: '_' },
+  '\\#': { type: 'OperatorNode', val: '#' },
+  '\\$': { type: 'OperatorNode', val: '$' },
+  
+  // Знаки для химии (OperatorNode)
+  '\\uparrow': { type: 'OperatorNode', val: '↑' },   // Выделение газа
+  '\\downarrow': { type: 'OperatorNode', val: '↓' }, // Выпадение осадка
+  '\\degree': { type: 'OperatorNode', val: '°' },    // Значок градуса (для температуры над стрелкой)
+  
+  // Многоточия (OperatorNode)
+  '\\dots': { type: 'OperatorNode', val: '…' },  // Обычное многоточие
+  '\\cdots': { type: 'OperatorNode', val: '⋯' }, // Многоточие по центру строки (для матриц и рядов)
+  '\\vdots': { type: 'OperatorNode', val: '⋮' }, // Вертикальное многоточие (для матриц)
+  '\\ddots': { type: 'OperatorNode', val: '⋱' }, // Диагональное многоточие (для матриц)  
 };
 
 class TeXParser {
