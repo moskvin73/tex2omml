@@ -900,11 +900,21 @@ class TeXParser {
       // 4. Парсим одиночные элементы (токены) внутри конкретной ячейки
       // Вместо жадного parseMathExpression собираем ячейку поатомно
       try {
-        const expr = this.parseAtom(); // или parsePrimary(), parseFactor() вашего парсера
+        // Защита: если перед нами спецсимволы матрицы, не запускаем жадный парсинг выражения
+        if (this.currentToken.type === TokenType.AMPERSAND || 
+            this.currentToken.value === '\\\\' || 
+            this.currentToken.value === '\\end') {
+            continue;
+        }
+
+        // Вызываем ваш стандартный метод парсинга выражения для текущей ячейки
+        const expr = this.parseMathExpression();
         if (expr) currentCellNodes.push(expr);
+        
       } catch (err) {
         if (this.errors.mode === 'failFast') throw err;
-        // Перематываем до спецсимволов матрицы в случае ошибки
+        
+        // В случае синтаксической ошибки перематываем токены до границ следующей ячейки или строки
         while (this.currentToken.type !== TokenType.AMPERSAND && 
                this.currentToken.value !== '\\\\' && 
                this.currentToken.value !== '\\end' && 
