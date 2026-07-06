@@ -931,14 +931,10 @@ function renderMathML(nodes) {
             }
         }
         if (node.type === 'FencedNode') {
-            // Если закрывающая скобка отсутствует (система уравнений), тег <mo> для нее не создаем
-            const closeBracket = node.close ? `<mo>${node.close}</mo>` : '';
-            
-            // Обертка <mrow> принудительно заставит теги <mo> растянуться по высоте дроби/матрицы
             return `<mrow>` +
                 `<mo>${node.open}</mo>` +
-                `<mrow>${renderMathML(node.body)}</mrow>` +
-                closeBracket +
+                renderMathML(node.body) + 
+                `<mo>${node.close}</mo>` +
             `</mrow>`;
         }
         if (node.type === 'MatrixNode') {
