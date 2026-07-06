@@ -1,4 +1,4 @@
-import { texToMathML, texToOMML } from './parser.js?v=14';
+import { texToMathML, texToOMML } from './parser.js?v=15';
 
 let currentOMML = "";
 
@@ -64,7 +64,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
     <!--StartFragment-->
     <!--[if gte msEquation 12]>
     <m:oMathPara>
-        ${ormulaPayload}
+        ${formulaPayload}
     </m:oMathPara>
     <![endif]-->
     <!--EndFragment-->
