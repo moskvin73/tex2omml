@@ -90,6 +90,9 @@ class TeXLexer {
       // Валидные латинские переменные
       { type: TokenType.MATH_VAR, regex: /\p{Script=Latin}/yu },
 
+      // Диапазон Unicode \p{Script=Greek} выделит их в отдельный чистый токен!
+      { type: TokenType.GREEK_CHAR, regex: /\p{Script=Greek}/yu },
+
       // Любые другие Unicode буквы (Кириллица, Армянский, Греческий и др.)
       { type: TokenType.NON_LATIN_CHAR, regex: /(?=\p{L})\P{Script=Latin}/yu },
 
