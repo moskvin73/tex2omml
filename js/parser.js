@@ -1,9 +1,11 @@
-// КОМПИЛЯТОР: СКАНЕР + РЕКУРСИВНЫЙ СПУСК (AST)
+// НАСТОЯЩИЙ КОМПИЛЯТОР TEX (Сканер + Парсер AST)
+
 const GREEK_MAP = {
     'alpha': 'α', 'beta': 'β', 'gamma': 'γ', 'delta': 'δ',
     'lambda': 'λ', 'pi': 'π', 'sigma': 'σ', 'omega': 'ω', 'Delta': 'Δ'
 };
 
+// 1. ЛЕКСИЧЕСКИЙ АНАЛИЗАТОР (ИСПРАВЛЕН)
 function tokenize(tex) {
     const tokens = []; let i = 0;
     while (i < tex.length) {
@@ -15,9 +17,15 @@ function tokenize(tex) {
         if (char === ']') { tokens.push({ type: 'RBRACKET' }); i++; continue; }
         if (char === '&') { tokens.push({ type: 'ALIGN' }); i++; continue; }
         if (char === '\\' && tex[i + 1] === '\\') { tokens.push({ type: 'NEWLINE' }); i += 2; continue; }
+        
         if (char === '\\') {
             let match = tex.slice(i + 1).match(/^[a-zA-Z]+/);
-            if (match) { tokens.push({ type: 'COMMAND', value: match[0] }); i += 1 + match[0].length; continue; }
+            if (match) { 
+                // ИСПРАВЛЕНО: строго берем match[0] для значения и длины команды
+                tokens.push({ type: 'COMMAND', value: match[0] }); 
+                i += 1 + match[0].length; 
+                continue; 
+            }
         }
         if (['+', '-', '=', '*', '/', '(', ')'].includes(char)) { tokens.push({ type: 'OPERATOR', value: char }); i++; continue; }
         tokens.push({ type: 'CHAR', value: char }); i++;
@@ -25,80 +33,49 @@ function tokenize(tex) {
     tokens.push({ type: 'EOF' }); return tokens;
 }
 
+// 2. СИНТАКСИЧЕСКИЙ АНАЛИЗАТОР
 class TeXParser {
     constructor(tokens) { this.tokens = tokens; this.pos = 0; }
     peek() { return this.tokens[this.pos]; }
     consume(type) { const tok = this.peek(); if (type && tok.type !== type) throw new Error(`Error: ${type}`); this.pos++; return tok; }
+    
     parse() {
-       const nodes = [];
+        const nodes = [];
         while (this.pos < this.tokens.length) {
             const t = this.peek().type;
-            if (t === 'EOF' || t === 'RBRACE' || t === 'RBRACKET' || t === 'ALIGN' || t === 'NEWLINE') {
-                break;
-            }
+            if (t === 'EOF' || t === 'RBRACE' || t === 'RBRACKET' || t === 'ALIGN' || t === 'NEWLINE') break;
             nodes.push(this.parseExpression());
         }
         return nodes;
     }
+
     parseExpression() {
-       let node = null;
-
-        // ПРОВЕРКА НА ХИМИЮ: Если формула начинается с пустой группы {} перед индексами
+        // Проверка на химические левые индексы вида {}_6^{12}
         if (this.peek().type === 'LBRACE' && this.tokens[this.pos + 1] && this.tokens[this.pos + 1].type === 'RBRACE') {
-            this.consume('LBRACE');
-            this.consume('RBRACE');
-            
-            // Считываем левые индексы (например, _6^{12})
-            let sub = null;
-            let sup = null;
-            
+            this.consume('LBRACE'); this.consume('RBRACE');
+            let sub = null; let sup = null;
             while (this.peek().type === 'CHAR' && (this.peek().value === '^' || this.peek().value === '_')) {
-                const op = this.consume('CHAR').value;
-                let script = null;
-                if (this.peek().type === 'LBRACE') {
-                    this.consume('LBRACE'); script = this.parse(); this.consume('RBRACE');
-                } else {
-                    script = [this.parsePrimary()];
-                }
-                if (op === '_') sub = script;
-                if (op === '^') sup = script;
+                const op = this.consume('CHAR').value; let script = null;
+                if (this.peek().type === 'LBRACE') { this.consume('LBRACE'); script = this.parse(); this.consume('RBRACE'); }
+                else { script = [this.parsePrimary()]; }
+                if (op === '_') sub = script; if (op === '^') sup = script;
             }
-
-            // Следующий за индексами символ (например, 'C') становится базой для левых индексов
             let baseNode = (this.peek().type !== 'EOF') ? this.parsePrimary() : { type: 'TextNode', value: '' };
-
-            return {
-                type: 'PreSubSupNode',
-                sub: sub,
-                sup: sup,
-                base: baseNode
-            };
+            return { type: 'PreSubSupNode', sub, sup, base: baseNode };
         }
 
-        // ОБЫЧНАЯ ЛОГИКА: Сначала считываем нормальную базу (символ, команду или группу)
-        node = this.parsePrimary();
+        let node = this.parsePrimary();
 
-        // Считываем идущие подряд правые индексы (^ и _) любой вложенности
+        // Сборщик правых индексов (ИСПРАВЛЕН)
         while (this.peek().type === 'CHAR' && (this.peek().value === '^' || this.peek().value === '_')) {
-            const firstOp = this.consume('CHAR').value;
-            let firstScript = null;
-            
-            if (this.peek().type === 'LBRACE') {
-                this.consume('LBRACE'); firstScript = this.parse(); this.consume('RBRACE');
-            } else {
-                firstScript = [this.parsePrimary()];
-            }
+            const firstOp = this.consume('CHAR').value; let firstScript = null;
+            if (this.peek().type === 'LBRACE') { this.consume('LBRACE'); firstScript = this.parse(); this.consume('RBRACE'); }
+            else { firstScript = [this.parsePrimary()]; }
 
-            // Если следом идет второй индекс противоположного типа - собираем совмещенный SubSupNode
             if (this.peek().type === 'CHAR' && (this.peek().value === '^' || this.peek().value === '_') && this.peek().value !== firstOp) {
-                const secondOp = this.consume('CHAR').value;
-                let secondScript = null;
-                
-                if (this.peek().type === 'LBRACE') {
-                    this.consume('LBRACE'); secondScript = this.parse(); this.consume('RBRACE');
-                } else {
-                    secondScript = [this.parsePrimary()];
-                }
+                const secondOp = this.consume('CHAR').value; let secondScript = null;
+                if (this.peek().type === 'LBRACE') { this.consume('LBRACE'); secondScript = this.parse(); this.consume('RBRACE'); }
+                else { secondScript = [this.parsePrimary()]; }
 
                 node = {
                     type: 'SubSupNode',
@@ -107,33 +84,25 @@ class TeXParser {
                     sup: firstOp === '^' ? firstScript : secondScript
                 };
             } else {
-                // Если индекс только один - создаем обычный одиночный верхний/нижний индекс
-                node = {
-                    type: firstOp === '^' ? 'SupNode' : 'SubNode',
-                    base: node,
-                    script: firstScript
-                };
+                node = { type: firstOp === '^' ? 'SupNode' : 'SubNode', base: node, script: firstScript };
             }
         }
         return node;
     }
+
     parsePrimary() {
         const tok = this.peek();
         if (tok.type === 'CHAR' || tok.type === 'OPERATOR') { this.consume(); return { type: 'TextNode', value: tok.value }; }
         if (tok.type === 'COMMAND') {
             this.consume();
             if (tok.value === 'text') {
-                this.consume('LBRACE');
-                // Считываем все токены внутри \text{...} как чистый текст
-                const body = [];
+                this.consume('LBRACE'); const body = [];
                 while (this.pos < this.tokens.length && this.peek().type !== 'RBRACE') {
-                    const nextTok = this.consume();
-                    body.push(nextTok.value || '');
+                    body.push(this.consume().value || '');
                 }
                 this.consume('RBRACE');
-                // Создаем специальный узел, который защищен от курсива
                 return { type: 'PlainTextNode', value: body.join('') };
-            }            
+            }
             if (tok.value === 'frac') {
                 this.consume('LBRACE'); const num = this.parse(); this.consume('RBRACE');
                 this.consume('LBRACE'); const den = this.parse(); this.consume('RBRACE');
@@ -146,33 +115,19 @@ class TeXParser {
                 return { type: 'RadicalNode', deg, body };
             }
             if (tok.value === 'begin') {
-               this.consume('LBRACE');
-                const envName = this.consume('CHAR').value;
-                // Считываем остаток имени окружения (например, 'atrix' для matrix или 'ases' для cases)
-                let fullEnvName = envName;
-                while(this.peek().type === 'CHAR') {
-                    fullEnvName += this.consume().value;
-                }
+                this.consume('LBRACE'); let envName = this.consume('CHAR').value;
+                while(this.peek().type === 'CHAR') { envName += this.consume().value; }
                 this.consume('RBRACE');
-
                 const rows = []; let currentRow = [];
                 while (true) {
                     const nextTok = this.peek();
                     if (nextTok.type === 'COMMAND' && nextTok.value === 'end') break;
-                    if (nextTok.type === 'ALIGN' || nextTok.type === 'NEWLINE') {
-                        this.consume(); rows.push(currentRow); currentRow = [];
-                    } else {
-                        currentRow.push(this.parseExpression());
-                    }
+                    if (nextTok.type === 'ALIGN' || nextTok.type === 'NEWLINE') { this.consume(); rows.push(currentRow); currentRow = []; }
+                    else { currentRow.push(this.parseExpression()); }
                 }
                 if (currentRow.length > 0) rows.push(currentRow);
-
-                this.consume('COMMAND'); this.consume('LBRACE');
-                while(this.peek().type === 'CHAR') this.consume();
-                this.consume('RBRACE');
-
-                // Возвращаем узел матрицы или системы уравнений
-                return { type: 'MatrixNode', env: fullEnvName, rows };
+                this.consume('COMMAND'); this.consume('LBRACE'); while(this.peek().type === 'CHAR') this.consume(); this.consume('RBRACE');
+                return { type: 'MatrixNode', env: envName, rows };
             }
             if (tok.value === 'cdot') return { type: 'TextNode', value: '·' };
             if (GREEK_MAP[tok.value]) return { type: 'GreekNode', value: GREEK_MAP[tok.value] };
@@ -183,6 +138,7 @@ class TeXParser {
     }
 }
 
+// 3. ГЕНЕРАТОРЫ КОДА
 function renderMathML(nodes) {
     if (!nodes) return '';
     return nodes.map(node => {
@@ -191,6 +147,7 @@ function renderMathML(nodes) {
             if (/^[0-9]+$/.test(node.value)) return `<mn>${node.value}</mn>`;
             return `<mi>${node.value}</mi>`;
         }
+        if (node.type === 'PlainTextNode') return `<mtext>${node.value}</mtext>`;
         if (node.type === 'GroupNode') return `<mrow>${renderMathML(node.body)}</mrow>`;
         if (node.type === 'FractionNode') return `<mfrac><mrow>${renderMathML(node.num)}</mrow><mrow>${renderMathML(node.den)}</mrow></mfrac>`;
         if (node.type === 'RadicalNode') {
@@ -199,69 +156,42 @@ function renderMathML(nodes) {
         }
         if (node.type === 'SupNode') return `<msup><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.script)}</mrow></msup>`;
         if (node.type === 'SubNode') return `<msub><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.script)}</mrow></msub>`;
+        if (node.type === 'SubSupNode') return `<msubsup><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></msubsup>`;
+        if (node.type === 'PreSubSupNode') return `<mmultiscripts><mrow>${renderMathML([node.base])}</mrow><mprescripts/><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></mmultiscripts>`;
         if (node.type === 'MatrixNode') {
             const table = `<mtable>${node.rows.map(r => `<mtr><mtd><mrow>${renderMathML(r)}</mrow></mtd></mtr>`).join('')}</mtable>`;
             if (node.env === 'p' || node.env === 'pmatrix') return `<mo>&#x0028;</mo>${table}<mo>&#x0029;</mo>`;
             if (node.env === 'b' || node.env === 'bmatrix') return `<mo>&#x005B;</mo>${table}<mo>&#x005D;</mo>`;
-            if (node.env === 'cases') return `<mo>&#x007B;</mo>${table}`; // Фигурная скобка только слева
+            if (node.env === 'cases') return `<mo>&#x007B;</mo>${table}`;
             return table;
         }
-        if (node.type === 'PreSubSupNode') {
-            return `<mmultiscripts><mrow>${renderMathML([node.base])}</mrow><mprescripts/><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></mmultiscripts>`;
-        }
-        if (node.type === 'PlainTextNode') {
-            return `<mtext>${node.value}</mtext>`;
-        }      
         return '';
     }).join('');
 }
 
-function renderOMML(nodes) { 
+function renderOMML(nodes) {
     if (!nodes) return '';
     return nodes.map(node => {
-        // Обычные символы и операторы
         if (node.type === 'TextNode' || node.type === 'GreekNode') {
             const val = node.value;
-            // Если это одиночная латинская буква (переменная) — делаем её курсивом строго по вашему дампу
             if (/^[A-Za-z]$/.test(val)) {
                 return `<m:r><m:t><i><span style='font-size:12.0pt;font-family:"Cambria Math","serif";mso-fareast-font-family:"Times New Roman";mso-bidi-font-family:"Times New Roman";'>${val}</span></i></m:t></m:r>`;
             }
-            // Цифры, знаки и греческие буквы остаются прямыми
             return `<m:r><m:t><span style='font-size:12.0pt;font-family:"Cambria Math","serif";'>${val}</span></m:t></m:r>`;
         }
-        
-        // Текст из макроса \text{...} — принудительно ПРЯМОЙ шрифт
         if (node.type === 'PlainTextNode') {
             return `<m:r><m:t><span style='font-size:12.0pt;font-family:"Cambria Math","serif";'>${node.value}</span></m:t></m:r>`;
         }
-        
         if (node.type === 'GroupNode') return renderOMML(node.body);
-        
-        if (node.type === 'FractionNode') {
-            return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
-        }
-        
+        if (node.type === 'FractionNode') return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
         if (node.type === 'RadicalNode') {
             if (node.deg) return `<m:rad><m:radPr></m:radPr><m:deg>${renderOMML(node.deg)}</m:deg><m:e>${renderOMML(node.body)}</m:e></m:rad>`;
             return `<m:rad><m:radPr><m:degHide m:val="on"/></m:radPr><m:deg/><m:e>${renderOMML(node.body)}</m:e></m:rad>`;
         }
-        
-        if (node.type === 'SupNode') {
-            return `<m:sSup><m:e>${renderOMML([node.base])}</m:e><m:sup>${renderOMML(node.script)}</m:sup></m:sSup>`;
-        }
-        
-        if (node.type === 'SubNode') {
-            return `<m:sSub><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.script)}</m:sub></m:sSub>`;
-        }
-        
-        if (node.type === 'SubSupNode') {
-            return `<m:sSubSup><m:sSubSupPr></m:sSubSupPr><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup></m:sSubSup>`;
-        }
-        
-        if (node.type === 'PreSubSupNode') {
-            return `<m:sPre><m:sPrePr></m:sPrePr><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup><m:e>${renderOMML([node.base])}</m:e></m:sPre>`;
-        }
-        
+        if (node.type === 'SupNode') return `<m:sSup><m:e>${renderOMML([node.base])}</m:e><m:sup>${renderOMML(node.script)}</m:sup></m:sSup>`;
+        if (node.type === 'SubNode') return `<m:sSub><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.script)}</m:sub></m:sSub>`;
+        if (node.type === 'SubSupNode') return `<m:sSubSup><m:sSubSupPr></m:sSubSupPr><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup></m:sSubSup>`;
+        if (node.type === 'PreSubSupNode') return `<m:sPre><m:sPrePr></m:sPrePr><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup><m:e>${renderOMML([node.base])}</m:e></m:sPre>`;
         if (node.type === 'MatrixNode') {
             const table = `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${node.rows.map(r => `<m:mr><m:e>${renderOMML(r)}</m:e></m:mr>`).join('')}</m:m>`;
             if (node.env === 'p' || node.env === 'pmatrix') return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${table}</m:e></m:d>`;
