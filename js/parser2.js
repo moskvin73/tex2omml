@@ -373,7 +373,17 @@ const TeXSymbols = {
   '\\vert': { type: 'OperatorNode', val: '|' },
   '\\Vert': { type: 'OperatorNode', val: '‖' },
   '\\|': { type: 'OperatorNode', val: '|' },
-  '\\mid': { type: 'OperatorNode', val: '|' }, // Используется для обозначения делимости или множеств {x | x > 0}  
+  '\\mid': { type: 'OperatorNode', val: '|' }, // Используется для обозначения делимости или множеств {x | x > 0}
+  "\\langle":   { value: "⟨", type: "OperatorNode" }, // Угловая открывающая скобка U+2329
+  "\\rangle":   { value: "⟩", type: "OperatorNode" }, // Угловая закрывающая скобка U+232A
+  
+  // Диакритические знаки (акценты)
+  "\\hat":      { value: "ˆ", type: "AccentNode" },   // U+02C6 (крышечка)
+  "\\vec":      { value: "→", type: "AccentNode" },   // U+2192 (стрелка вектора)
+  "\\bar":      { value: "¯", type: "AccentNode" },   // U+00AF (черта макрона)
+  "\\tilde":    { value: "˜", type: "AccentNode" },   // U+02DC (тильда)
+  "\\dot":      { value: "˙", type: "AccentNode" },   // U+02D9 (одна точка)
+  "\\ddot":     { value: "¨", type: "AccentNode" },   // U+00A8 (две точки)
 };
 
 class TeXParser {
