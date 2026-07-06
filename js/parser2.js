@@ -639,14 +639,36 @@ class TeXParser {
   }  
 }
 
+const GreekUnicodeMap = {
+  '\\alpha': 'α', '\\beta': 'β', '\\gamma': 'γ', '\\delta': 'δ', 
+  '\\epsilon': 'ε', '\\zeta': 'ζ', '\\eta': 'η', '\\theta': 'θ',
+  '\\iota': 'ι', '\\kappa': 'κ', '\\lambda': 'λ', '\\mu': 'μ', 
+  '\\nu': 'ν', '\\xi': 'ξ', '\\pi': 'π', '\\rho': 'ρ', 
+  '\\sigma': 'σ', '\\tau': 'τ', '\\upsilon': 'υ', '\\phi': 'φ', 
+  '\\chi': 'χ', '\\psi': 'ψ', '\\omega': 'ω',
+  '\\Gamma': 'Γ', '\\Delta': 'Δ', '\\Theta': 'Θ', '\\Lambda': 'Λ', 
+  '\\Xi': 'Ξ', '\\Pi': 'Π', '\\Sigma': 'Σ', '\\Upsilon': 'Υ', 
+  '\\Phi': 'Φ', '\\Psi': 'Ψ', '\\Omega': 'Ω'
+};
+
 // 3. ГЕНЕРАТОРЫ КОДА
 function renderMathML(nodes) {
     if (!nodes) return '';
     return nodes.map(node => {
         if (node.type === 'TextNode' || node.type === 'GreekNode') {
-            if (['+', '-', '=', '*', '/'].includes(node.value)) return `<mo>${node.value}</mo>`;
-            if (/^[0-9]+$/.test(node.value)) return `<mn>${node.value}</mn>`;
-            return `<mi>${node.value}</mi>`;
+          let val = node.value;
+          
+          // Если это известная греческая буква или спецсимвол — берем Unicode
+          if (GreekUnicodeMap[val]) {
+              val = GreekUnicodeMap[val];
+          }
+
+          // Базовые математические операторы
+          if (['+', '-', '=', '*', '/'].includes(val)) return `<mo>${val}</mo>`;
+          // Числа
+          if (/^[0-9]+$/.test(val)) return `<mn>${val}</mn>`;
+          // Все остальное (переменные, греческие буквы)
+          return `<mi>${val}</mi>`;
         }
         if (node.type === 'PlainTextNode') return `<mtext>${node.value}</mtext>`;
         if (node.type === 'GroupNode') return `<mrow>${renderMathML(node.body)}</mrow>`;
@@ -674,14 +696,17 @@ function renderOMML(nodes) {
     if (!nodes) return '';
     return nodes.map(node => {
         if (node.type === 'TextNode' || node.type === 'GreekNode') {
-            const val = node.value;
+          let val = node.value;
+            
+            // Подменяем команду на Unicode символ
+            if (GreekUnicodeMap[val]) {
+                val = GreekUnicodeMap[val];
+            }
+
             if (/^[A-Za-z]$/.test(val)) {
-                return `<m:r><m:t><i><span style='font-size:12.0pt;font-family:"Cambria Math","serif";mso-fareast-font-family:"Times New Roman";mso-bidi-font-family:"Times New Roman";'>${val}</span></i></m:t></m:r>`;
+                return `<m:r><m:t><i><span style='font-family:"Cambria Math","serif";mso-fareast-font-family:"Times New Roman";mso-bidi-font-family:"Times New Roman";'>${val}</span></i></m:t></m:r>`;
             }
             return `<m:r><m:t><span style='font-family:"Cambria Math","serif";'>${val}</span></m:t></m:r>`;
-        }
-        if (node.type === 'PlainTextNode') {
-            return `<m:r><m:t><span style='font-family:"Cambria Math","serif";'>${node.value}</span></m:t></m:r>`;
         }
         if (node.type === 'GroupNode') return renderOMML(node.body);
         if (node.type === 'FractionNode') return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
