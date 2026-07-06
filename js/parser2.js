@@ -895,55 +895,95 @@ class TeXParser {
   }  
 }
 
+
+// Вспомогательная функция: оборачивает в <mrow> только если это действительно необходимо
+function wrapInMrowIfNeeded(nodes) {
+    if (!nodes) return '';
+    // Если это массив, содержащий один элемент, работаем с этим элементом напрямую
+    const list = Array.isArray(nodes) ? nodes : [nodes];
+    if (list.length === 0) return '';
+    
+    const rendered = renderMathML(list);
+    // Если элемент один, обертка <mrow> сверху не нужна (за исключением явных GroupNode)
+    if (list.length === 1) {
+        return rendered;
+    }
+    return `<mrow>${rendered}</mrow>`;
+}
+
 // 3. ГЕНЕРАТОРЫ КОДА
 function renderMathML(nodes) {
     if (!nodes) return '';
-    return nodes.map(node => {
+    
+    // Приводим к массиву, чтобы функция могла безопасно принимать как массивы узлов, так и одиночные узлы
+    const nodesArray = Array.isArray(nodes) ? nodes : [nodes];
+    
+    return nodesArray.map(node => {
+        if (!node) return '';
+        
         if (node.type === 'VariableNode')   return `<mi>${node.value}</mi>`; 
         if (node.type === 'MathSymbolNode') return `<mi>${node.value}</mi>`; // Греческие буквы тоже <mi>
         if (node.type === 'NumberNode')     return `<mn>${node.value}</mn>`;
         if (node.type === 'OperatorNode')   return `<mo>${node.value}</mo>`;
         if (node.type === 'FunctionNode')   return `<mo>${node.value}</mo>`; // Функции тоже в <mo>
         if (node.type === 'PlainTextNode')  return `<mtext>${node.value}</mtext>`;        
-        if (node.type === 'PlainTextNode') return `<mtext>${node.value}</mtext>`;
+        
         if (node.type === 'GroupNode') return `<mrow>${renderMathML(node.body)}</mrow>`;
-        if (node.type === 'FractionNode') return `<mfrac><mrow>${renderMathML(node.num)}</mrow><mrow>${renderMathML(node.den)}</mrow></mfrac>`;
-        if (node.type === 'RadicalNode') {
-            if (node.deg) return `<mroot><mrow>${renderMathML(node.body)}</mrow><mrow>${renderMathML(node.deg)}</mrow></mroot>`;
-            return `<msqrt><mrow>${renderMathML(node.body)}</mrow></msqrt>`;
+        
+        if (node.type === 'FractionNode') {
+            return `<mfrac>${wrapInMrowIfNeeded(node.num)}${wrapInMrowIfNeeded(node.den)}</mfrac>`;
         }
-        if (node.type === 'SupNode') return `<msup><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.script)}</mrow></msup>`;
-        if (node.type === 'SubNode') return `<msub><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.script)}</mrow></msub>`;
-        if (node.type === 'SubSupNode') return `<msubsup><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></msubsup>`;
-        if (node.type === 'PreSubSupNode') return `<mmultiscripts><mrow>${renderMathML([node.base])}</mrow><mprescripts/><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></mmultiscripts>`;
+        
+        if (node.type === 'RadicalNode') {
+            if (node.deg) {
+                return `<mroot>${wrapInMrowIfNeeded(node.body)}${wrapInMrowIfNeeded(node.deg)}</mroot>`;
+            }
+            return `<msqrt>${wrapInMrowIfNeeded(node.body)}</msqrt>`;
+        }
+        
+        if (node.type === 'SupNode') {
+            return `<msup>${wrapInMrowIfNeeded(node.base)}${wrapInMrowIfNeeded(node.script)}</msup>`;
+        }
+        if (node.type === 'SubNode') {
+            return `<msub>${wrapInMrowIfNeeded(node.base)}${wrapInMrowIfNeeded(node.script)}</msub>`;
+        }
+        if (node.type === 'SubSupNode') {
+            return `<msubsup>${wrapInMrowIfNeeded(node.base)}${wrapInMrowIfNeeded(node.sub)}${wrapInMrowIfNeeded(node.sup)}</msubsup>`;
+        }
+        if (node.type === 'PreSubSupNode') {
+            return `<mmultiscripts>${wrapInMrowIfNeeded(node.base)}<mprescripts/>${wrapInMrowIfNeeded(node.sub)}${wrapInMrowIfNeeded(node.sup)}</mmultiscripts>`;
+        }
+        
         if (node.type === 'UnderOverNode') {
             // Если есть и верхний, и нижний лимит (например, сумма от i=1 до n)
             if (node.sub && node.sup) {
-                return `<munderover><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></munderover>`;
+                return `<munderover>${wrapInMrowIfNeeded(node.base)}${wrapInMrowIfNeeded(node.sub)}${wrapInMrowIfNeeded(node.sup)}</munderover>`;
             }
             // Если есть только нижний лимит (например, предел x -> 0)
             if (node.sub) {
-                return `<munder><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sub)}</mrow></munder>`;
+                return `<munder>${wrapInMrowIfNeeded(node.base)}${wrapInMrowIfNeeded(node.sub)}</munder>`;
             }
             // Если есть только верхний лимит
             if (node.sup) {
-                return `<mover><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sup)}</mrow></mover>`;
+                return `<mover>${wrapInMrowIfNeeded(node.base)}${wrapInMrowIfNeeded(node.sup)}</mover>`;
             }
         }
+        
         if (node.type === 'FencedNode') {
-            return `<mrow>` +
-                `<mo>${node.open}</mo>` +
-                renderMathML(node.body) + 
-                `<mo>${node.close}</mo>` +
-            `</mrow>`;
+            const closeBracket = node.close ? `<mo>${node.close}</mo>` : '';
+            // Для FencedNode внешняя обёртка <mrow> обязательна по спецификации (индикатор растяжения)
+            // Внутри — абсолютно плоский рендер содержимого без промежуточных слоёв
+            return `<mrow><mo>${node.open}</mo>${renderMathML(node.body)}${closeBracket}</mrow>`;
         }
+        
         if (node.type === 'MatrixNode') {
-            const table = `<mtable>${node.rows.map(r => `<mtr><mtd><mrow>${renderMathML(r)}</mrow></mtd></mtr>`).join('')}</mtable>`;
-            if (node.env === 'p' || node.env === 'pmatrix') return `<mo>&#x0028;</mo>${table}<mo>&#x0029;</mo>`;
-            if (node.env === 'b' || node.env === 'bmatrix') return `<mo>&#x005B;</mo>${table}<mo>&#x005D;</mo>`;
-            if (node.env === 'cases') return `<mo>&#x007B;</mo>${table}`;
+            const table = `<mtable>${node.rows.map(r => `<mtr><mtd>${wrapInMrowIfNeeded(r)}</mtd></mtr>`).join('')}</mtable>`;
+            if (node.env === 'p' || node.env === 'pmatrix') return `<mrow><mo>&#x0028;</mo>${table}<mo>&#x0029;</mo></mrow>`;
+            if (node.env === 'b' || node.env === 'bmatrix') return `<mrow><mo>&#x005B;</mo>${table}<mo>&#x005D;</mo></mrow>`;
+            if (node.env === 'cases') return `<mrow><mo>&#x007B;</mo>${table}</mrow>`;
             return table;
         }
+        
         return '';
     }).join('');
 }
