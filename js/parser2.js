@@ -27,7 +27,7 @@ const TokenType = Object.freeze({
   PUNCTUATION: 23,
   UNKNOWN: 24,
   GREEK_CHAR: 25
-});
+}); 
 
 // 2. Массив для расшифровки ID токенов в понятные строки (только для логов и ошибок)
 const TokenNames = Object.freeze(Object.keys(TokenType));
@@ -572,6 +572,58 @@ class TeXParser {
           }
           this.eat(TokenType.RBRACE);
           return { type: 'GroupNode', body: groupBody };
+
+      // =========================================================================
+        // ОБРАБОТКА ОБЫЧНЫХ СКОБОК (Теперь они гарантированно станут OperatorNode -> <mo>)
+        // =========================================================================
+        case TokenType.LPAREN:
+        case TokenType.RPAREN:
+        case TokenType.LBRACKET:
+        case TokenType.RBRACKET:
+          const bracketVal = token.value;
+          this.nextToken(); this.lookahead();
+          return { type: 'OperatorNode', value: bracketVal };
+
+        // =========================================================================
+        // ОБРАБОТКА МАСШТАБИРУЕМЫХ СКОБОК \left ... \right
+        // =========================================================================
+        case TokenType.LEFT_BRACKET_CMD:
+          this.eat(TokenType.LEFT_BRACKET_CMD); // Поглощаем \left
+          
+          // Символ открывающей скобки (это может быть знак (, [, {, команду \{ и т.д.)
+          const openDelimiter = this.currentToken.value;
+          this.nextToken(); this.lookahead(); // Поглощаем символ скобки
+
+          const fencedBody = [];
+          
+          // Собираем выражение внутри, пока не упремся в \right или конец файла
+          while (this.currentToken.type !== TokenType.RIGHT_BRACKET_CMD && this.currentToken.type !== TokenType.EOF) {
+            try {
+              const expr = this.parseMathExpression();
+              if (expr) fencedBody.push(expr);
+            } catch (err) {
+              if (this.errors.mode === 'failFast') throw err;
+              this.recoverInsideMath(TokenType.RIGHT_BRACKET_CMD);
+            }
+          }
+
+          this.eat(TokenType.RIGHT_BRACKET_CMD); // Поглощаем \right
+          
+          // Символ закрывающей скобки (например, ) или . )
+          const closeDelimiter = this.currentToken.value;
+          this.nextToken(); this.lookahead(); // Поглощаем его
+
+          // Очищаем скобки от слэшей для рендереров (например, '\{' превращаем в '{')
+          const cleanOpen = openDelimiter.replace('\\', '');
+          const cleanClose = closeDelimiter.replace('\\', '');
+
+          return { 
+            type: 'FencedNode', 
+            open: cleanOpen, 
+            // В TeX точка означает отсутствие скобки (для систем уравнений), передаем как пустую строку
+            close: cleanClose === '.' ? '' : cleanClose, 
+            body: fencedBody 
+          };          
 
         case TokenType.COMMAND:
           return this.parseCommand();
