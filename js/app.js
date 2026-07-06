@@ -1,7 +1,46 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=17';
+import { texToMathML, texToOMML } from './parser2.js?v=18';
 
 let currentOMML = "";
+
+function formatXML(xml) {
+    // 1. Убираем уже существующие случайные переносы и лишние пробелы между тегами
+    let reg = /(>)\s*(<)(\/*)/g;
+    let cleanXml = xml.replace(reg, '$1\r\n$2$3');
+    
+    let pad = 0;
+    let formatted = '';
+    let lines = cleanXml.split('\r\n');
+    
+    // Теги, содержимое которых нельзя форматировать переносами строк (сохраняем текст внутри)
+    const preserveTextTags = /<m:t|<mtext|<mi|<mn|<mo/i;
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trim();
+        if (!line) continue;
+
+        let indent = 0;
+        
+        if (line.match(/.+<\/\w[^>]*>$/)) {
+            // Тег открывается и закрывается на одной строке (например: <m:chr m:val="∑"/>)
+            indent = 0;
+        } else if (line.match(/^<\/\w/)) {
+            // Закрывающий тег (например: </m:e>) -> уменьшаем отступ
+            if (pad !== 0) pad -= 1;
+        } else if (line.match(/^<\w([^>]*[^\/])?>$/) && !preserveTextTags.test(line)) {
+            // Открывающий структурный тег -> увеличиваем отступ для следующей строки
+            indent = 1;
+        } else {
+            indent = 0;
+        }
+
+        // Добавляем текущую строку с нужным количеством отступов (используем 2 пробела или '\t')
+        formatted += '  '.repeat(pad) + line + '\r\n';
+        pad += indent;
+    }
+
+    return formatted.trim();
+}
 
 function handleConvert() {
     const tex = document.getElementById('texInput').value;
@@ -10,8 +49,8 @@ function handleConvert() {
     currentOMML = texToOMML(tex); 
     
     document.getElementById('mathMLPreview').innerHTML = mathML;
-    document.getElementById('mathMLCode').textContent = mathML;
-    document.getElementById('ommlCode').textContent = currentOMML;
+    document.getElementById('mathMLCode').textContent = formatXML(mathML);
+    document.getElementById('ommlCode').textContent = formatXML(currentOMML);
 }
 
 async function handleCopyWord() {
