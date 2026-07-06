@@ -666,7 +666,7 @@ class TeXParser {
 
   // 1. Парсинг верхних и нижних индексов (^ и _)
   parseScripts(baseNode) {
-    let sub = null; // Для хранения нижнего индекса
+   let sub = null; // Для хранения нижнего индекса
     let sup = null; // Для хранения верхнего индекса
 
     // Проверяем первый символ индекса сразу за базой
@@ -685,7 +685,6 @@ class TeXParser {
         this.eat(TokenType.RBRACE);
       } else {
         // Если индекс без скобок (например, x^2), берем строго один атомарный элемент
-        // Используем parsePrimaryMathElement, чтобы не уйти в бесконечную рекурсию
         const prim = this.parsePrimaryMathElement();
         if (prim) scriptContent.push(prim);
       }
@@ -704,7 +703,21 @@ class TeXParser {
       }
     }
 
-    // Возвращаем правильный скомбинированный или одиночный узел индекса
+    // =========================================================================
+    // КРИТИЧЕСКАЯ СЕМАНТИЧЕСКАЯ ПРОВЕРКА ДЛЯ КРУПНЫХ ОПЕРАТОРОВ (lim, sum, prod)
+    // =========================================================================
+    // Проверяем текстовое значение БАЗЫ (baseNode.value). 
+    // Если база существует и её значение требует вертикального размещения:
+    const verticalOperators = ['lim', '∑', '∏', 'max', 'min', 'sup', 'inf'];
+    
+    if (baseNode && verticalOperators.includes(baseNode.value)) {
+      // Возвращаем специализированный узел UnderOverNode под/над строчных индексов
+      return { type: 'UnderOverNode', base: baseNode, sub: sub, sup: sup };
+    }
+
+    // =========================================================================
+    // КЛАССИЧЕСКИЕ БОКОВЫЕ ИНДЕКСЫ (для переменных, химии и интегралов \int)
+    // =========================================================================
     if (sub && sup) {
       return { type: 'SubSupNode', base: baseNode, sub: sub, sup: sup };
     } else if (sup) {
@@ -712,6 +725,7 @@ class TeXParser {
     } else if (sub) {
       return { type: 'SubNode', base: baseNode, script: sub };
     }
+    
     return baseNode;
   }
 
