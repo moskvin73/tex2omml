@@ -1011,11 +1011,25 @@ function renderMathML(nodes) {
         }
         
         if (node.type === 'MatrixNode') {
-         // node.rows — это массив строк. Каждая строка r — это массив ячеек.
+           // 1. Находим максимальное количество столбцов среди всех строк
+            const maxCols = node.rows.reduce((max, row) => Math.max(max, row.length), 0);
+            
+            // 2. Генерируем таблицу, дополняя короткие строки пустыми ячейками <mtd>
             const table = `<mtable>` + 
                 node.rows.map(row => {
-                    const mtds = row.map(cell => `<mtd>${wrapInMrowIfNeeded(cell)}</mtd>`).join('');
-                    return `<mtr>${mtds}</mtr>`;
+                    const mtds = [];
+                    
+                    // Рендерим существующие ячейки
+                    row.forEach(cell => {
+                        mtds.push(`<mtd>${wrapInMrowIfNeeded(cell)}</mtd>`);
+                    });
+                    
+                    // Дописываем пустые ячейки, если строка короче, чем максимальная длина
+                    for (let i = row.length; i < maxCols; i++) {
+                        mtds.push(`<mtd></mtd>`); // Пустая ячейка для выравнивания сетки
+                    }
+                    
+                    return `<mtr>${mtds.join('')}</mtr>`;
                 }).join('') + 
             `</mtable>`;
             
@@ -1105,43 +1119,45 @@ function renderOMML(nodes) {
           return `<m:d><m:dPr><m:begChr m:val="${node.open}"/><m:endChr m:val="${node.close}"/><m:grow m:val="on"/></m:dPr><m:e>${renderOMML(node.body)}</m:e></m:d>`;
         }
         if (node.type === 'MatrixNode') {
-          // 1. Считаем максимальное количество колонок для генерации стилей (нужно для отступов)
+            // 1. Считаем максимальное количество колонок для генерации стилей
             const maxCols = node.rows.reduce((max, row) => Math.max(max, row.length), 0);
             
-            // 2. Генерируем обязательные стили колонок матрицы (выравнивание по центру)
+            // 2. Генерируем обязательные стили колонок матрицы
             let mcs = '<m:mcs>';
             for (let i = 0; i < maxCols; i++) {
                 mcs += '<m:mc><m:mcPr><m:count m:val="1"/><m:mcJc m:val="center"/></m:mcPr></m:mc>';
             }
             mcs += '</m:mcs>';
 
-            // 3. Формируем блок свойств матрицы (задаем выравнивание по центру и явный интервал colSpc)
             const mPr = `<m:mPr>` +
                 `<m:baseJc m:val="center"/>` +
-                `<m:colSpc m:val="512"/>` + // Расстояние между колонками, чтобы они не схлопывались
+                `<m:colSpc m:val="512"/>` + 
                 mcs +
             `</m:mPr>`;
             
-            // 4. Генерируем тело матрицы: проходим по строкам, а внутри — по ячейкам
+            // 3. Формируем строки, принудительно дополняя их пустыми ячейками до maxCols
             const table = `<m:m>${mPr}` + 
                 node.rows.map(row => {
-                    // Каждую ячейку cell (массив узлов) рендерим отдельно и оборачиваем в <m:e>
-                    const cellsXml = row.map(cell => `<m:e>${renderOMML(cell)}</m:e>`).join('');
-                    return `<m:mr>${cellsXml}</m:mr>`;
+                    const cellsXml = [];
+                    
+                    // Рендерим реальные ячейки
+                    row.forEach(cell => {
+                        cellsXml.push(`<m:e>${renderOMML(cell)}</m:e>`);
+                    });
+                    
+                    // Дописываем пустые контейнеры для выравнивания структуры Word
+                    for (let i = row.length; i < maxCols; i++) {
+                        // Используем невидимый символ, чтобы Word корректно держал сетку и не сжимал её
+                        cellsXml.push(`<m:e><m:r><m:t>&#x200B;</m:t></m:r></m:e>`);
+                    }
+                    
+                    return `<m:mr>${cellsXml.join('')}</m:mr>`;
                 }).join('') + 
             `</m:m>`;
             
-            // 5. Обертки скобок для разных типов окружений (ИСПРАВЛЕНО: заменен w:val на m:val)
-            if (node.env === 'p' || node.env === 'pmatrix') {
-                return `<m:d><m:dPr><m:begChr m:val="("/><m:endChr m:val=")"/><m:grow m:val="on"/></m:dPr><m:e>${table}</m:e></m:d>`;
-            }
-            if (node.env === 'b' || node.env === 'bmatrix') {
-                return `<m:d><m:dPr><m:begChr m:val="["/><m:endChr m:val="]"/><m:grow m:val="on"/></m:dPr><m:e>${table}</m:e></m:d>`;
-            }
-            if (node.env === 'cases') {
-                return `<m:d><m:dPr><m:begChr m:val="{"/><m:endChr m:val=""/><m:grow m:val="on"/></m:dPr><m:e>${table}</m:e></m:d>`;
-            }
-            
+            if (node.env === 'p' || node.env === 'pmatrix') return `<m:d><m:dPr><m:begChr m:val="("/><m:endChr m:val=")"/><m:grow m:val="on"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            if (node.env === 'b' || node.env === 'bmatrix') return `<m:d><m:dPr><m:begChr m:val="["/><m:endChr m:val="]"/><m:grow m:val="on"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            if (node.env === 'cases') return `<m:d><m:dPr><m:begChr m:val="{"/><m:endChr m:val=""/><m:grow m:val="on"/></m:dPr><m:e>${table}</m:e></m:d>`;
             return table;
           }
         return '';
