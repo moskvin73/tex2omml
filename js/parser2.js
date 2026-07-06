@@ -843,6 +843,21 @@ class TeXParser {
       return { type: 'MatrixNode', env: envName, rows: rows };
     }
 
+    // Г.2 Диакритические знаки (акценты): \hat{H}, \vec{x}, \bar{a}
+    if (TeXSymbols[cmdName] && TeXSymbols[cmdName].type === 'AccentNode') {
+      const match = TeXSymbols[cmdName];
+      
+      this.eat(TokenType.LBRACE);
+      const body = this.parseGroupContent(); // Парсим выражение под акцентом
+      this.eat(TokenType.RBRACE);
+
+      return { 
+        type: 'AccentNode', 
+        accent: match.val || match.value, // Берем Unicode-знак акцента из таблицы
+        body: body 
+      };
+    }
+
     // Проверяем команду по нашей семантической таблице
     if (TeXSymbols[cmdName]) {
       const match = TeXSymbols[cmdName];
