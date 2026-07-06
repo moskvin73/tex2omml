@@ -884,7 +884,7 @@ function renderOMML(nodes) {
                     `</m:naryPr>` +
                     subPart + 
                     supPart +
-                    `<m:e></m:e>` + // Пустое тело оператора (Word ожидает его структуру)
+                    `<m:e><m:r><m:t>&#x200B;</m:t></m:r></m:e>` + // Убирает пустые скобки и рамки
                 `</m:nary>`;
             }
 
