@@ -815,6 +815,20 @@ function renderMathML(nodes) {
         if (node.type === 'SubNode') return `<msub><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.script)}</mrow></msub>`;
         if (node.type === 'SubSupNode') return `<msubsup><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></msubsup>`;
         if (node.type === 'PreSubSupNode') return `<mmultiscripts><mrow>${renderMathML([node.base])}</mrow><mprescripts/><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></mmultiscripts>`;
+        if (node.type === 'UnderOverNode') {
+            // Если есть и верхний, и нижний лимит (например, сумма от i=1 до n)
+            if (node.sub && node.sup) {
+                return `<munderover><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></munderover>`;
+            }
+            // Если есть только нижний лимит (например, предел x -> 0)
+            if (node.sub) {
+                return `<munder><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sub)}</mrow></munder>`;
+            }
+            // Если есть только верхний лимит
+            if (node.sup) {
+                return `<mover><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sup)}</mrow></mover>`;
+            }
+        }        
         if (node.type === 'MatrixNode') {
             const table = `<mtable>${node.rows.map(r => `<mtr><mtd><mrow>${renderMathML(r)}</mrow></mtd></mtr>`).join('')}</mtable>`;
             if (node.env === 'p' || node.env === 'pmatrix') return `<mo>&#x0028;</mo>${table}<mo>&#x0029;</mo>`;
@@ -854,6 +868,51 @@ function renderOMML(nodes) {
         if (node.type === 'SubNode') return `<m:sSub><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.script)}</m:sub></m:sSub>`;
         if (node.type === 'SubSupNode') return `<m:sSubSup><m:sSubSupPr></m:sSubSupPr><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup></m:sSubSup>`;
         if (node.type === 'PreSubSupNode') return `<m:sPre><m:sPrePr></m:sPrePr><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup><m:e>${renderOMML([node.base])}</m:e></m:sPre>`;
+        // Добавьте этот блок внутрь функции renderOMML рядом с обработкой SupNode/SubSupNode
+        if (node.type === 'UnderOverNode') {
+            const val = node.base.value;
+
+            // 1. Специфика для СУММЫ (∑) и ПРОИЗВЕДЕНИЯ (∏) в Word
+            if (val === '∑' || val === '∏') {
+                const subPart = node.sub ? `<m:sub>${renderOMML(node.sub)}</m:sub>` : '<m:sub/>';
+                const supPart = node.sup ? `<m:sup>${renderOMML(node.sup)}</m:sup>` : '<m:sup/>';
+                
+                return `<m:nary>` +
+                    `<m:naryPr>` +
+                        `<m:chr m:val="${val}"/>` + // Сам знак ∑ или ∏
+                        `<m:limLoc m:val="undOvr"/>` + // Инструкция Ворду: разместить индексы строго ПОД/НАД
+                    `</m:naryPr>` +
+                    subPart + 
+                    supPart +
+                    `<m:e></m:e>` + // Пустое тело оператора (Word ожидает его структуру)
+                `</m:nary>`;
+            }
+
+            // 2. Специфика для ПРЕДЕЛОВ (lim, max, min, sup, inf) в Word
+            if (node.sub && node.sup) {
+                // Если у предела ввели два индекса одновременно (редко, но бывает), 
+                // Ворд требует вложить limUpp внутрь limLow
+                return `<m:limLow>` +
+                    `<m:e>` +
+                        `<m:limUpp>` +
+                            `<m:e>${renderOMML([node.base])}</m:e>` +
+                            `<m:lim>${renderOMML(node.sup)}</m:lim>` +
+                        `</m:limUpp>` +
+                    `</m:e>` +
+                    `<m:lim>${renderOMML(node.sub)}</m:lim>` +
+                `</m:limLow>`;
+            }
+            
+            if (node.sub) {
+                // Классический предел с нижней надписью: lim Low
+                return `<m:limLow><m:e>${renderOMML([node.base])}</m:e><m:lim>${renderOMML(node.sub)}</m:lim></m:limLow>`;
+            }
+            
+            if (node.sup) {
+                // Предел с верхней надписью: lim Upp
+                return `<m:limUpp><m:e>${renderOMML([node.base])}</m:e><m:lim>${renderOMML(node.sup)}</m:lim></m:limUpp>`;
+            }
+        }     
         if (node.type === 'MatrixNode') {
             const table = `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${node.rows.map(r => `<m:mr><m:e>${renderOMML(r)}</m:e></m:mr>`).join('')}</m:m>`;
             if (node.env === 'p' || node.env === 'pmatrix') return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${table}</m:e></m:d>`;
