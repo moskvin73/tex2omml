@@ -40,11 +40,45 @@ class TeXParser {
     }
     parseExpression() {
         let node = this.parsePrimary();
+
+        // Цикл проверяет, есть ли после символа индексы
         while (this.peek().type === 'CHAR' && (this.peek().value === '^' || this.peek().value === '_')) {
-            const op = this.consume('CHAR').value; let scriptNode = null;
-            if (this.peek().type === 'LBRACE') { this.consume('LBRACE'); scriptNode = this.parse(); this.consume('RBRACE'); }
-            else { scriptNode = [this.parsePrimary()]; }
-            node = { type: op === '^' ? 'SupNode' : 'SubNode', base: node, script: scriptNode };
+            const firstOp = this.consume('CHAR').value;
+            let firstScript = null;
+            
+            // Считываем первый встретившийся индекс
+            if (this.peek().type === 'LBRACE') {
+                this.consume('LBRACE'); firstScript = this.parse(); this.consume('RBRACE');
+            } else {
+                firstScript = [this.parsePrimary()];
+            }
+
+            // ПРОВЕРЯЕМ: А нет ли сразу за ним ВТОРОГО индекса другого типа?
+            if (this.peek().type === 'CHAR' && (this.peek().value === '^' || this.peek().value === '_') && this.peek().value !== firstOp) {
+                const secondOp = this.consume('CHAR').value;
+                let secondScript = null;
+                
+                if (this.peek().type === 'LBRACE') {
+                    this.consume('LBRACE'); secondScript = this.parse(); this.consume('RBRACE');
+                } else {
+                    secondScript = [this.parsePrimary()];
+                }
+
+                // Объединяем оба индекса в один узел SubSupNode (ровно друг под другом)
+                node = {
+                    type: 'SubSupNode',
+                    base: node,
+                    sub: firstOp === '_' ? firstScript : secondScript,
+                    sup: firstOp === '^' ? firstScript : secondScript
+                };
+            } else {
+                // Если индекс только один, оставляем как было
+                node = {
+                    type: firstOp === '^' ? 'SupNode' : 'SubNode',
+                    base: node,
+                    script: firstScript
+                };
+            }
         }
         return node;
     }
