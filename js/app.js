@@ -1,4 +1,4 @@
-import { texToMathML, texToOMML } from './parser.js?v=10';
+import { texToMathML, texToOMML } from './parser.js?v=11';
 
 let currentOMML = "";
 
@@ -27,13 +27,11 @@ async function handleCopyWord() {
     // Исключаем из курсива знаки плюс, минус, равно и цифры, чтобы они оставались прямыми!
     const richOMML = currentOMML.replace(/<m:t>([\s\S]*?)<\/m:t>/g, (match, text) => {
         const trimmed = text.trim();
-        
-        // ИСПРАВЛЕНО: Делаем курсивом СТРОГО одиночные латинские буквы (переменные)
+        // Если это одиночная латинская буква - делаем математическим курсивом
         if (/^[A-Za-z]$/.test(trimmed)) {
             return `<m:t><i><span style='font-size:12.0pt;font-family:"Cambria Math","serif";mso-fareast-font-family:"Times New Roman";mso-bidi-font-family:"Times New Roman";'>${text}</span></i></m:t>`;
         }
-        
-        // Все остальное (цифры, операторы, кириллица, целые слова из \text) остается ПРЯМЫМ шрифтом
+        // Цифры, операторы, кириллица и монолитные блоки из \text{...} остаются прямыми!
         return `<m:t><span style='font-size:12.0pt;font-family:"Cambria Math","serif";'>${text}</span></m:t>`;
     });
 

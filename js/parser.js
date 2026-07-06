@@ -39,21 +39,31 @@ class TeXParser {
         return nodes;
     }
     parseExpression() {
-        let node = this.parsePrimary();
+        let node = this.peek().type === 'LBRACE' ? null : this.parsePrimary();
+        
+        // Если база была группой в фигурных скобках, проверим, не пустая ли она
+        if (node === null && this.peek().type === 'LBRACE') {
+            this.consume('LBRACE');
+            const innerNodes = this.parse();
+            this.consume('RBRACE');
+            // Если внутри ничего нет - это пустая группа {} для левых индексов
+            if (innerNodes.length === 0) {
+                node = { type: 'EmptyBaseNode' };
+            } else {
+                node = { type: 'GroupNode', body: innerNodes };
+            }
+        }
 
-        // Цикл проверяет, есть ли после символа индексы
         while (this.peek().type === 'CHAR' && (this.peek().value === '^' || this.peek().value === '_')) {
             const firstOp = this.consume('CHAR').value;
             let firstScript = null;
             
-            // Считываем первый встретившийся индекс
             if (this.peek().type === 'LBRACE') {
                 this.consume('LBRACE'); firstScript = this.parse(); this.consume('RBRACE');
             } else {
                 firstScript = [this.parsePrimary()];
             }
 
-            // ПРОВЕРЯЕМ: А нет ли сразу за ним ВТОРОГО индекса другого типа?
             if (this.peek().type === 'CHAR' && (this.peek().value === '^' || this.peek().value === '_') && this.peek().value !== firstOp) {
                 const secondOp = this.consume('CHAR').value;
                 let secondScript = null;
@@ -64,15 +74,24 @@ class TeXParser {
                     secondScript = [this.parsePrimary()];
                 }
 
-                // Объединяем оба индекса в один узел SubSupNode (ровно друг под другом)
-                node = {
-                    type: 'SubSupNode',
-                    base: node,
-                    sub: firstOp === '_' ? firstScript : secondScript,
-                    sup: firstOp === '^' ? firstScript : secondScript
-                };
+                // Проверяем: если база пустая, значит это ЛЕВЫЕ индексы (Химия)
+                if (node && node.type === 'EmptyBaseNode') {
+                    node = {
+                        type: 'PreSubSupNode',
+                        sub: firstOp === '_' ? firstScript : secondScript,
+                        sup: firstOp === '^' ? firstScript : secondScript,
+                        base: null // Базу привяжем на следующем шаге парсинга
+                    };
+                } else {
+                    // Обычные совмещенные индексы справа
+                    node = {
+                        type: 'SubSupNode',
+                        base: node,
+                        sub: firstOp === '_' ? firstScript : secondScript,
+                        sup: firstOp === '^' ? firstScript : secondScript
+                    };
+                }
             } else {
-                // Если индекс только один, оставляем как было
                 node = {
                     type: firstOp === '^' ? 'SupNode' : 'SubNode',
                     base: node,
@@ -80,6 +99,12 @@ class TeXParser {
                 };
             }
         }
+
+        // Если у нас сформировался узел левых индексов, следующий идущий символ (например, 'C') станет его базой!
+        if (node && node.type === 'PreSubSupNode' && node.base === null && this.peek().type !== 'EOF') {
+            node.base = this.parsePrimary();
+        }
+
         return node;
     }
     parsePrimary() {
@@ -171,12 +196,12 @@ function renderMathML(nodes) {
             if (node.env === 'cases') return `<mo>&#x007B;</mo>${table}`; // Фигурная скобка только слева
             return table;
         }
+        if (node.type === 'PreSubSupNode') {
+            return `<mmultiscripts><mrow>${renderMathML([node.base])}</mrow><mprescripts/><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></mmultiscripts>`;
+        }
         if (node.type === 'PlainTextNode') {
             return `<mtext>${node.value}</mtext>`;
-        }
-        if (node.type === 'SubSupNode') {
-            return `<msubsup><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></msubsup>`;
-        }        
+        }      
         return '';
     }).join('');
 }
@@ -205,14 +230,15 @@ function renderOMML(nodes) {
             if (node.env === 'cases') return `<m:d><m:dPr><m:begChr w:val="{"/><m:endChr w:val=""/></m:dPr><m:e>${table}</m:e></m:d>`;
             return table;
         }
+        // Добавьте обработку левых индексов (m:sPre) в функцию renderOMML:
+        if (node.type === 'PreSubSupNode') {
+            // Структура Word 2010 для индексов СЛЕВА от базы (m:sPre)
+            return `<m:sPre><m:sPrePr></m:sPrePr><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup><m:e>${renderOMML([node.base])}</m:e></m:sPre>`;
+        }
         if (node.type === 'PlainTextNode') {
-            // В OMML текст помечается обычным m:r без математических стилей
+            // Исправлено: текст из \text{} принудительно оборачиваем в стандартный m:r/m:t
             return `<m:r><m:t>${node.value}</m:t></m:r>`;
         }
-        if (node.type === 'SubSupNode') {
-            // Структура Word 2010 для совмещенных индексов справа
-            return `<m:sSubSup><m:sSubSupPr></m:sSubSupPr><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup></m:sSubSup>`;
-        }        
         return '';
     }).join('');
 }
