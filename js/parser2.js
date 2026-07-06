@@ -651,37 +651,16 @@ class TeXParser {
   }  
 }
 
-const GreekUnicodeMap = {
-  '\\alpha': 'α', '\\beta': 'β', '\\gamma': 'γ', '\\delta': 'δ', 
-  '\\epsilon': 'ε', '\\zeta': 'ζ', '\\eta': 'η', '\\theta': 'θ',
-  '\\iota': 'ι', '\\kappa': 'κ', '\\lambda': 'λ', '\\mu': 'μ', 
-  '\\nu': 'ν', '\\xi': 'ξ', '\\pi': 'π', '\\rho': 'ρ', 
-  '\\sigma': 'σ', '\\tau': 'τ', '\\upsilon': 'υ', '\\phi': 'φ', 
-  '\\chi': 'χ', '\\psi': 'ψ', '\\omega': 'ω',
-  '\\Gamma': 'Γ', '\\Delta': 'Δ', '\\Theta': 'Θ', '\\Lambda': 'Λ', 
-  '\\Xi': 'Ξ', '\\Pi': 'Π', '\\Sigma': 'Σ', '\\Upsilon': 'Υ', 
-  '\\Phi': 'Φ', '\\Psi': 'Ψ', '\\Omega': 'Ω'
-};
-
 // 3. ГЕНЕРАТОРЫ КОДА
 function renderMathML(nodes) {
     if (!nodes) return '';
     return nodes.map(node => {
-        if (node.type === 'TextNode' || node.type === 'GreekNode') {
-          let val = node.value;
-          
-          // Если это известная греческая буква или спецсимвол — берем Unicode
-          if (GreekUnicodeMap[val]) {
-              val = GreekUnicodeMap[val];
-          }
-
-          // Базовые математические операторы
-          if (['+', '-', '=', '*', '/'].includes(val)) return `<mo>${val}</mo>`;
-          // Числа
-          if (/^[0-9]+$/.test(val)) return `<mn>${val}</mn>`;
-          // Все остальное (переменные, греческие буквы)
-          return `<mi>${val}</mi>`;
-        }
+        if (node.type === 'VariableNode')   return `<mi>${node.value}</mi>`; 
+        if (node.type === 'MathSymbolNode') return `<mi>${node.value}</mi>`; // Греческие буквы тоже <mi>
+        if (node.type === 'NumberNode')     return `<mn>${node.value}</mn>`;
+        if (node.type === 'OperatorNode')   return `<mo>${node.value}</mo>`;
+        if (node.type === 'FunctionNode')   return `<mo>${node.value}</mo>`; // Функции тоже в <mo>
+        if (node.type === 'PlainTextNode')  return `<mtext>${node.value}</mtext>`;        
         if (node.type === 'PlainTextNode') return `<mtext>${node.value}</mtext>`;
         if (node.type === 'GroupNode') return `<mrow>${renderMathML(node.body)}</mrow>`;
         if (node.type === 'FractionNode') return `<mfrac><mrow>${renderMathML(node.num)}</mrow><mrow>${renderMathML(node.den)}</mrow></mfrac>`;
