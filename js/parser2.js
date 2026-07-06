@@ -637,3 +637,82 @@ class TeXParser {
     return rows;
   }  
 }
+
+// 3. ГЕНЕРАТОРЫ КОДА
+function renderMathML(nodes) {
+    if (!nodes) return '';
+    return nodes.map(node => {
+        if (node.type === 'TextNode' || node.type === 'GreekNode') {
+            if (['+', '-', '=', '*', '/'].includes(node.value)) return `<mo>${node.value}</mo>`;
+            if (/^[0-9]+$/.test(node.value)) return `<mn>${node.value}</mn>`;
+            return `<mi>${node.value}</mi>`;
+        }
+        if (node.type === 'PlainTextNode') return `<mtext>${node.value}</mtext>`;
+        if (node.type === 'GroupNode') return `<mrow>${renderMathML(node.body)}</mrow>`;
+        if (node.type === 'FractionNode') return `<mfrac><mrow>${renderMathML(node.num)}</mrow><mrow>${renderMathML(node.den)}</mrow></mfrac>`;
+        if (node.type === 'RadicalNode') {
+            if (node.deg) return `<mroot><mrow>${renderMathML(node.body)}</mrow><mrow>${renderMathML(node.deg)}</mrow></mroot>`;
+            return `<msqrt><mrow>${renderMathML(node.body)}</mrow></msqrt>`;
+        }
+        if (node.type === 'SupNode') return `<msup><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.script)}</mrow></msup>`;
+        if (node.type === 'SubNode') return `<msub><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.script)}</mrow></msub>`;
+        if (node.type === 'SubSupNode') return `<msubsup><mrow>${renderMathML([node.base])}</mrow><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></msubsup>`;
+        if (node.type === 'PreSubSupNode') return `<mmultiscripts><mrow>${renderMathML([node.base])}</mrow><mprescripts/><mrow>${renderMathML(node.sub)}</mrow><mrow>${renderMathML(node.sup)}</mrow></mmultiscripts>`;
+        if (node.type === 'MatrixNode') {
+            const table = `<mtable>${node.rows.map(r => `<mtr><mtd><mrow>${renderMathML(r)}</mrow></mtd></mtr>`).join('')}</mtable>`;
+            if (node.env === 'p' || node.env === 'pmatrix') return `<mo>&#x0028;</mo>${table}<mo>&#x0029;</mo>`;
+            if (node.env === 'b' || node.env === 'bmatrix') return `<mo>&#x005B;</mo>${table}<mo>&#x005D;</mo>`;
+            if (node.env === 'cases') return `<mo>&#x007B;</mo>${table}`;
+            return table;
+        }
+        return '';
+    }).join('');
+}
+
+function renderOMML(nodes) {
+    if (!nodes) return '';
+    return nodes.map(node => {
+        if (node.type === 'TextNode' || node.type === 'GreekNode') {
+            const val = node.value;
+            if (/^[A-Za-z]$/.test(val)) {
+                return `<m:r><m:t><i><span style='font-size:12.0pt;font-family:"Cambria Math","serif";mso-fareast-font-family:"Times New Roman";mso-bidi-font-family:"Times New Roman";'>${val}</span></i></m:t></m:r>`;
+            }
+            return `<m:r><m:t><span style='font-family:"Cambria Math","serif";'>${val}</span></m:t></m:r>`;
+        }
+        if (node.type === 'PlainTextNode') {
+            return `<m:r><m:t><span style='font-family:"Cambria Math","serif";'>${node.value}</span></m:t></m:r>`;
+        }
+        if (node.type === 'GroupNode') return renderOMML(node.body);
+        if (node.type === 'FractionNode') return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
+        if (node.type === 'RadicalNode') {
+            if (node.deg) return `<m:rad><m:radPr></m:radPr><m:deg>${renderOMML(node.deg)}</m:deg><m:e>${renderOMML(node.body)}</m:e></m:rad>`;
+            return `<m:rad><m:radPr><m:degHide m:val="on"/></m:radPr><m:deg/><m:e>${renderOMML(node.body)}</m:e></m:rad>`;
+        }
+        if (node.type === 'SupNode') return `<m:sSup><m:e>${renderOMML([node.base])}</m:e><m:sup>${renderOMML(node.script)}</m:sup></m:sSup>`;
+        if (node.type === 'SubNode') return `<m:sSub><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.script)}</m:sub></m:sSub>`;
+        if (node.type === 'SubSupNode') return `<m:sSubSup><m:sSubSupPr></m:sSubSupPr><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup></m:sSubSup>`;
+        if (node.type === 'PreSubSupNode') return `<m:sPre><m:sPrePr></m:sPrePr><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup><m:e>${renderOMML([node.base])}</m:e></m:sPre>`;
+        if (node.type === 'MatrixNode') {
+            const table = `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${node.rows.map(r => `<m:mr><m:e>${renderOMML(r)}</m:e></m:mr>`).join('')}</m:m>`;
+            if (node.env === 'p' || node.env === 'pmatrix') return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            if (node.env === 'b' || node.env === 'bmatrix') return `<m:d><m:dPr><m:begChr w:val="["/><m:endChr w:val="]"/></m:dPr><m:e>${table}</m:e></m:d>`;
+            if (node.env === 'cases') return `<m:d><m:dPr><m:begChr w:val="{"/><m:endChr w:val=""/></m:dPr><m:e>${table}</m:e></m:d>`;
+            return table;
+        }
+        return '';
+    }).join('');
+}
+
+export function texToMathML(tex) {
+    try {
+        const tokens = tokenize(tex); const parser = new TeXParser(tokens); const ast = parser.parse();
+        return `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">${renderMathML(ast)}</math>`;
+    } catch (e) { return `<span style="color:red;">Ошибка MathML: ${e.message}</span>`; }
+}
+
+export function texToOMML(tex) {
+    try {
+        const tokens = tokenize(tex); const parser = new TeXParser(tokens); const ast = parser.parse();
+        return `<m:oMath>${renderOMML(ast)}</m:oMath>`;
+    } catch (e) { return `<!-- Ошибка OMML: ${e.message} -->`; }
+}
