@@ -1061,7 +1061,7 @@ function renderOMML(nodes) {
             }
         }
         if (node.type === 'FencedNode') {
-          return `<m:d><m:dPr><m:begChr w:val="${node.open}"/><m:endChr w:val="${node.close}"/><m:grow m:val="on"/></m:dPr><m:e>${renderOMML(node.body)}</m:e></m:d>`;
+          return `<m:d><m:dPr><m:begChr m:val="${node.open}"/><m:endChr m:val="${node.close}"/><m:grow m:val="on"/></m:dPr><m:e>${renderOMML(node.body)}</m:e></m:d>`;
         }
         if (node.type === 'MatrixNode') {
             const table = `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${node.rows.map(r => `<m:mr><m:e>${renderOMML(r)}</m:e></m:mr>`).join('')}</m:m>`;
