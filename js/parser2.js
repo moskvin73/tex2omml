@@ -1031,7 +1031,8 @@ function renderMathML(nodes) {
         if (node.type === 'NumberNode')     return `<mn>${node.value}</mn>`;
         if (node.type === 'OperatorNode')   return `<mo>${node.value}</mo>`;
         if (node.type === 'FunctionNode')   return `<mo>${node.value}</mo>`; // Функции тоже в <mo>
-        if (node.type === 'PlainTextNode')  return `<mtext>${node.value}</mtext>`;        
+        if (node.type === 'PlainTextNode')  return `<mtext>${node.value}</mtext>`;     
+        if (node.type === 'SeparatorNode')  return `<mo>${node.value}</mo>`;   
         
         if (node.type === 'GroupNode') return `<mrow>${renderMathML(node.body)}</mrow>`;
         
@@ -1131,6 +1132,7 @@ function renderOMML(nodes) {
             node.type === 'PlainTextNode') {
             return `<m:r><m:t><span style='font-family:"Cambria Math","serif";'>${node.value}</span></m:t></m:r>`;
         }
+        if (node.type === 'SeparatorNode')  return '';
         if (node.type === 'GroupNode') return renderOMML(node.body);
         if (node.type === 'FractionNode') return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
         if (node.type === 'RadicalNode') {
@@ -1187,7 +1189,18 @@ function renderOMML(nodes) {
             }
         }
         if (node.type === 'FencedNode') {
-          return `<m:d><m:dPr><m:begChr m:val="${node.open}"/><m:endChr m:val="${node.close}"/><m:grow m:val="on"/></m:dPr><m:e>${renderOMML(node.body)}</m:e></m:d>`;
+            const sepPr = node.separator ? `<m:sepChr m:val="${node.separator}"/>` : '';
+            
+            return `<m:d>` +
+                `<m:dPr>` +
+                    `<m:begChr m:val="${node.open || ''}"/>` +
+                    sepPr + // <--- Ворд прочитает этот тег и поймет: "Ага, внутри скобок надо включить режим разделения!"
+                    `<m:endChr m:val="${node.close || ''}"/>` +
+                    `<m:grow m:val="on"/>` +
+                `</m:dPr>` +
+                `<m:e>${renderOMML(node.body)}</m:e>` +
+            `</m:d>`;          
+          //return `<m:d><m:dPr><m:begChr m:val="${node.open}"/><m:endChr m:val="${node.close}"/><m:grow m:val="on"/></m:dPr><m:e>${renderOMML(node.body)}</m:e></m:d>`;
         }
         if (node.type === 'MatrixNode') {
             // 1. Считаем максимальное количество колонок для генерации стилей
