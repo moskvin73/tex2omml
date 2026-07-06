@@ -186,6 +186,35 @@ class TeXErrorCollector {
   }
 }
 
+const TeXSymbols = {
+  // Греческие буквы и спецсимволы (MathSymbolNode)
+  '\\alpha': { type: 'MathSymbolNode', val: 'α' },
+  '\\beta': { type: 'MathSymbolNode', val: 'β' },
+  '\\gamma': { type: 'MathSymbolNode', val: 'γ' },
+  '\\delta': { type: 'MathSymbolNode', val: 'δ' },
+  '\\epsilon': { type: 'MathSymbolNode', val: 'ε' },
+  '\\phi': { type: 'MathSymbolNode', val: 'φ' },
+  '\\omega': { type: 'MathSymbolNode', val: 'ω', },
+  '\\Omega': { type: 'MathSymbolNode', val: 'Ω' },
+  
+  // Именованные математические операторы и стрелки (OperatorNode)
+  '\\rightarrow': { type: 'OperatorNode', val: '→' },
+  '\\to': { type: 'OperatorNode', val: '→' },
+  '\\cdot': { type: 'OperatorNode', val: '·' },
+  '\\neq': { type: 'OperatorNode', val: '≠' },
+  '\\le': { type: 'OperatorNode', val: '≤' },
+  '\\ge': { type: 'OperatorNode', val: '≥' },
+
+  // Стандартные математические функции (FunctionNode)
+  '\\sin': { type: 'FunctionNode', val: 'sin' },
+  '\\cos': { type: 'FunctionNode', val: 'cos' },
+  '\\tan': { type: 'FunctionNode', val: 'tan' },
+  '\\tg': { type: 'FunctionNode', val: 'tg' },
+  '\\ln': { type: 'FunctionNode', val: 'ln' },
+  '\\log': { type: 'FunctionNode', val: 'log' },
+  '\\lim': { type: 'FunctionNode', val: 'lim' }
+};
+
 class TeXParser {
   // Конструктор принимает наш лексер и менеджер ошибок (ErrorCollector)
   constructor(lexer, errorCollector) {
