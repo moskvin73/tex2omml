@@ -689,13 +689,13 @@ function renderOMML(nodes) {
     if (!nodes) return '';
     return nodes.map(node => {
         // Только VariableNode (латиница) получает тег курсива <i>
-        if (node.type === 'VariableNode') {
+        if (node.type === 'VariableNode' || 
+            node.type === 'MathSymbolNode') {
             return `<m:r><m:t><i><span style='font-family:"Cambria Math","serif";'>${node.value}</span></i></m:t></m:r>`;
         }
         
         // Все остальные атомарные узлы выводятся строго ПРЯМЫМ шрифтом
-        if (node.type === 'MathSymbolNode' || 
-            node.type === 'NumberNode'     || 
+        if (node.type === 'NumberNode'     || 
             node.type === 'OperatorNode'   || 
             node.type === 'FunctionNode'   || 
             node.type === 'PlainTextNode') {
