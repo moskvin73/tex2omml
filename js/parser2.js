@@ -356,58 +356,46 @@ class TeXParser {
     const token = this.currentToken;
 
     switch (token.type) {
-      // Стандартные математические элементы: числа, латинские переменные, знаки и препинание
-      case TokenType.NUMBER:
-      case TokenType.MATH_VAR:
-      case TokenType.OPERATOR:
-      case TokenType.PUNCTUATION:
-        this.nextToken();
-        this.lookahead();
-        // Все они по вашей спецификации заворачиваются в базовый TextNode
-        return { type: 'TextNode', value: token.value };
+        case TokenType.NUMBER:
+          this.nextToken(); this.lookahead();
+          return { type: 'NumberNode', value: token.value };
 
-      // КРИТИЧЕСКАЯ ТОЧКА: Нелатинские символы (кириллица, армянский и т.д.) напрямую в формуле
-      case TokenType.NON_LATIN_CHAR:
-        // Регистрируем ошибку через наш ErrorCollector
-        this.errors.add(
-          `Нелатинский символ "${token.value}" запрещен в математическом режиме. Используйте \\text{...}`, 
-          token
-        );
-        // Поглощаем ошибочный токен, чтобы продвинуть курсор и не зациклиться
-        this.nextToken();
-        this.lookahead();
-        // Возвращаем узел ошибки, чтобы парсер мог продолжить строить дерево, либо null
-        return { type: 'TextNode', value: token.value };
+        case TokenType.MATH_VAR:
+          this.nextToken(); this.lookahead();
+          return { type: 'VariableNode', value: token.value };
 
-      // Фигурные скобки {...} создают изолированную подгруппу в формуле
-      case TokenType.LBRACE:
-        this.eat(TokenType.LBRACE); // Поглощаем открывающую '{'
-        
-        const groupBody = [];
-        // Собираем элементы внутри скобок, пока не встретим закрывающую '}' или EOF
-        while (this.currentToken.type !== TokenType.RBRACE && this.currentToken.type !== TokenType.EOF) {
-          try {
+        case TokenType.OPERATOR:
+          this.nextToken(); this.lookahead();
+          return { type: 'OperatorNode', value: token.value };
+
+        case TokenType.PUNCTUATION:
+          this.nextToken(); this.lookahead();
+          // Знаки препинания (запятая, точка с запятой) в MathML семантически являются операторами <mo>
+          return { type: 'OperatorNode', value: token.value };
+
+        case TokenType.NON_LATIN_CHAR:
+          this.errors.add(`Нелатинский символ "${token.value}" запрещен в математическом режиме. Используйте \\text{...}`, token);
+          this.nextToken(); this.lookahead();
+          return { type: 'VariableNode', value: token.value };
+
+        case TokenType.LBRACE:
+          this.eat(TokenType.LBRACE);
+          const groupBody = [];
+          while (this.currentToken.type !== TokenType.RBRACE && this.currentToken.type !== TokenType.EOF) {
             const expr = this.parseMathExpression();
             if (expr) groupBody.push(expr);
-          } catch (err) {
-            if (this.errors.mode === 'failFast') throw err;
-            this.recoverInsideMath(TokenType.RBRACE);
           }
-        }
-        
-        this.eat(TokenType.RBRACE); // Поглощаем закрывающую '}'
-        return { type: 'GroupNode', body: groupBody };
+          this.eat(TokenType.RBRACE);
+          return { type: 'GroupNode', body: groupBody };
 
-      // Если встретили команду (макрос), начинающуюся со слэша '\'
-      case TokenType.COMMAND:
-        return this.parseCommand();
+        case TokenType.COMMAND:
+          return this.parseCommand();
 
-      // Обработка непредвиденных структурных токенов (например, одиночные скобки)
-      default:
-        this.nextToken();
-        this.lookahead();
-        return { type: 'TextNode', value: token.value };
-    }
+        default:
+          const unknownVal = this.currentToken.value;
+          this.nextToken(); this.lookahead();
+          return { type: 'VariableNode', value: unknownVal };
+      }
   }
  
   // 1. Главный диспетчер макросов (команд, начинающихся с '\')
@@ -498,19 +486,14 @@ class TeXParser {
       return { type: 'MatrixNode', env: envName, rows: rows };
     }
 
-    // Е. Проверка на классические греческие буквы
-    const greekLetters = [
-      '\\alpha', '\\beta', '\\gamma', '\\delta', '\\epsilon', '\\zeta', '\\eta', '\\theta',
-      '\\iota', '\\kappa', '\\lambda', '\\mu', '\\nu', '\\xi', '\\pi', '\\rho', '\\sigma',
-      '\\tau', '\\upsilon', '\\phi', '\\chi', '\\psi', '\\omega', '\\Gamma', '\\Delta',
-      '\\Theta', '\\Lambda', '\\Xi', '\\Pi', '\\Sigma', '\\Upsilon', '\\Phi', '\\Psi', '\\Omega'
-    ];
-    if (greekLetters.includes(cmdName)) {
-      return { type: 'GreekNode', value: cmdName };
+    // Проверяем команду по нашей семантической таблице
+    if (TeXSymbols[cmdName]) {
+      const match = TeXSymbols[cmdName];
+      return { type: match.type, value: match.val };
     }
 
-    // Ж. Любые другие функции/команды по умолчанию (\sin, \cos, \log)
-    return { type: 'TextNode', value: cmdName };
+    // Если команда вообще неизвестна (\unknown), отдаем как базовый оператор/функцию
+    return { type: 'FunctionNode', value: cmdName };
   }
 
   // 2. Вспомогательный метод быстрого сбора содержимого внутри фигурных скобок {...}
