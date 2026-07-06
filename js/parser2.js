@@ -707,15 +707,16 @@ function renderOMML(nodes) {
 export function texToMathML(tex) {
     try {
 
+      const lexer = new TeXLexer(tex);
  console.log("Сырые токены из лексера:", lexer.tokenize()); 
     
     // Сбрасываем курсор лексера обратно в 0 после отладочного tokenize()
     lexer.cursor = 0; 
     lexer.currentLine = 1;
     lexer.currentColumn = 1;
-          
+
         // 1. Создаем лексер и сборщик ошибок (в режиме мгновенного падения)
-        const lexer = new TeXLexer(tex);
+        //const lexer = new TeXLexer(tex);
         const errorCollector = new TeXErrorCollector('failFast');
             
         // 2. Инициализируем парсер и строим AST-дерево
