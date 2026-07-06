@@ -336,7 +336,13 @@ const TeXSymbols = {
   '\\oint': { type: 'OperatorNode', val: '∮' },
   '\\infty': { type: 'OperatorNode', val: '∞' },
 
-  '\\,': { type: 'OperatorNode', val: ' ' }, // Здесь внутри кавычек сидит Unicode тонкий пробел (Thin Space, U+2009)  
+  '\\,': { type: 'OperatorNode', val: ' ' }, // Здесь внутри кавычек сидит Unicode тонкий пробел (Thin Space, U+2009)
+  '\\,': { type: 'OperatorNode', val: ' ' }, // Тонкий пробел (Thin Space, U+2009)
+  '\\:': { type: 'OperatorNode', val: ' ' }, // Средний пробел (Medium Space, U+205F)
+  '\\;': { type: 'OperatorNode', val: ' ' }, // Толстый пробел (Thick Space, U+2005)
+  '\\!': { type: 'OperatorNode', val: '' },  // Отрицательный пробел (ужимает текст, в Юникоде аналога нет, делаем пустым)
+  '\\quad': { type: 'OperatorNode', val: ' ' }, // Широкий пробел (Размером в букву M, U+2003)
+  '\\qquad': { type: 'OperatorNode', val: '  ' }, // Удвоенный широкий пробел  
 };
 
 class TeXParser {
