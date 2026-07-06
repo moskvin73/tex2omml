@@ -760,7 +760,24 @@ class TeXParser {
     }
 
     // Б. Дробь \frac{числитель}{знаменатель}
-    if (cmdName === '\\frac') {
+    if (cmdName === '\\frac' || cmdName === '\\dfrac' || cmdName === '\\tfrac' || cmdName === '\\sfrac') {
+      this.eat(TokenType.LBRACE);
+      const num = this.parseGroupContent(); // Парсим числитель
+      this.eat(TokenType.RBRACE);
+
+      this.eat(TokenType.LBRACE);
+      const den = this.parseGroupContent(); // Парсим знаменатель
+      this.eat(TokenType.RBRACE);
+
+      // Определяем подтип дроби для стилизации в MathML и Word
+      let subType = 'bar'; // обычная горизонтальная
+      if (cmdName === '\\dfrac') subType = 'display'; // принудительно крупная
+      if (cmdName === '\\tfrac') subType = 'small';   // маленькая простая дробь
+      if (cmdName === '\\sfrac') subType = 'skewed';  // диагональная/косая дробь
+
+      return { type: 'FractionNode', num: num, den: den, subType: subType };    
+    }
+    /*if (cmdName === '\\frac') {
       this.eat(TokenType.LBRACE);
       const num = this.parseGroupContent(); // Парсим числитель
       this.eat(TokenType.RBRACE);
@@ -770,7 +787,7 @@ class TeXParser {
       this.eat(TokenType.RBRACE);
 
       return { type: 'FractionNode', num: num, den: den };
-    }
+    }*/
 
     // В. Квадратный или n-ый корень \sqrt[степень]{тело}
     if (cmdName === '\\sqrt') {
