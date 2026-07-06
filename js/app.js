@@ -1,4 +1,4 @@
-import { texToMathML, texToOMML } from './parser.js?v=12';
+import { texToMathML, texToOMML } from './parser.js?v=13';
 
 let currentOMML = "";
 
@@ -22,19 +22,6 @@ async function handleCopyWord() {
         // Получаем выбранный пользователем режим (block или inline)
     const selectedMode = document.querySelector('input[name="mathMode"]:checked').value;
 
-    // Модифицируем OMML код строго под требования буфера обмена Word 2010.
-    // Находим все теги <m:t>Текст</m:t> и внедряем в них инлайн-курсив и шрифт Cambria Math.
-    // Исключаем из курсива знаки плюс, минус, равно и цифры, чтобы они оставались прямыми!
-    const richOMML = currentOMML.replace(/<m:t>([\s\S]*?)<\/m:t>/g, (match, text) => {
-        const trimmed = text.trim();
-        // Если это одиночная латинская буква - делаем математическим курсивом
-        if (/^[A-Za-z]$/.test(trimmed)) {
-            return `<m:t><i><span style='font-size:12.0pt;font-family:"Cambria Math","serif";mso-fareast-font-family:"Times New Roman";mso-bidi-font-family:"Times New Roman";'>${text}</span></i></m:t>`;
-        }
-        // Цифры, операторы, кириллица и монолитные блоки из \text{...} остаются прямыми!
-        return `<m:t><span style='font-size:12.0pt;font-family:"Cambria Math","serif";'>${text}</span></m:t>`;
-    });
-
     // Формируем тело документа в зависимости от режима
     let formulaPayload = "";
     if (selectedMode === "block") {
@@ -42,14 +29,14 @@ async function handleCopyWord() {
         formulaPayload = `
         <m:oMathPara>
             <m:oMathParaPr><m:jc m:val="centerGroup"/></m:oMathParaPr>
-            ${richOMML}
+            ${currentOMML}
         </m:oMathPara>`;
     } else {
         // Встроенный режим (Inline): m:oMathPara ЗАПРЕЩЕН, пишем прямо в текстовый абзац MsoNormal
         formulaPayload = `
         <p class="MsoNormal">
             <span style='font-size:11.0pt;font-family:"Calibri","sans-serif";'>Текст перед формулой </span>
-            ${richOMML}
+            ${currentOMML}
             <span style='font-size:11.0pt;font-family:"Calibri","sans-serif";'> текст после формулы.</span>
         </p>`;
     }    
@@ -77,7 +64,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
     <!--StartFragment-->
     <!--[if gte msEquation 12]>
     <m:oMathPara>
-        ${richOMML}
+        ${ormulaPayload}
     </m:oMathPara>
     <![endif]-->
     <!--EndFragment-->

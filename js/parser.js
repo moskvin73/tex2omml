@@ -219,35 +219,55 @@ function renderMathML(nodes) {
 function renderOMML(nodes) { 
     if (!nodes) return '';
     return nodes.map(node => {
-        // ОБНОВЛЕНО: Разделяем переменные (курсив) и обычные знаки/цифры (прямой шрифт)
+        // Обычные символы и операторы
         if (node.type === 'TextNode' || node.type === 'GreekNode') {
-           return `<m:r><m:t>${node.value}</m:t></m:r>`;
+            const val = node.value;
+            // Если это одиночная латинская буква (переменная) — делаем её курсивом строго по вашему дампу
+            if (/^[A-Za-z]$/.test(val)) {
+                return `<m:r><m:t><i><span style='font-size:12.0pt;font-family:"Cambria Math","serif";mso-fareast-font-family:"Times New Roman";mso-bidi-font-family:"Times New Roman";'>${val}</span></i></m:t></m:r>`;
+            }
+            // Цифры, знаки и греческие буквы остаются прямыми
+            return `<m:r><m:t><span style='font-size:12.0pt;font-family:"Cambria Math","serif";'>${val}</span></m:t></m:r>`;
+        }
+        
+        // Текст из макроса \text{...} — принудительно ПРЯМОЙ шрифт
+        if (node.type === 'PlainTextNode') {
+            return `<m:r><m:t><span style='font-size:12.0pt;font-family:"Cambria Math","serif";'>${node.value}</span></m:t></m:r>`;
         }
         
         if (node.type === 'GroupNode') return renderOMML(node.body);
-        if (node.type === 'FractionNode') return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
+        
+        if (node.type === 'FractionNode') {
+            return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
+        }
+        
         if (node.type === 'RadicalNode') {
             if (node.deg) return `<m:rad><m:radPr></m:radPr><m:deg>${renderOMML(node.deg)}</m:deg><m:e>${renderOMML(node.body)}</m:e></m:rad>`;
             return `<m:rad><m:radPr><m:degHide m:val="on"/></m:radPr><m:deg/><m:e>${renderOMML(node.body)}</m:e></m:rad>`;
         }
-        if (node.type === 'SupNode') return `<m:sSup><m:e>${renderOMML([node.base])}</m:e><m:sup>${renderOMML(node.script)}</m:sup></m:sSup>`;
-        if (node.type === 'SubNode') return `<m:sSub><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.script)}</m:sub></m:sSub>`;
+        
+        if (node.type === 'SupNode') {
+            return `<m:sSup><m:e>${renderOMML([node.base])}</m:e><m:sup>${renderOMML(node.script)}</m:sup></m:sSup>`;
+        }
+        
+        if (node.type === 'SubNode') {
+            return `<m:sSub><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.script)}</m:sub></m:sSub>`;
+        }
+        
+        if (node.type === 'SubSupNode') {
+            return `<m:sSubSup><m:sSubSupPr></m:sSubSupPr><m:e>${renderOMML([node.base])}</m:e><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup></m:sSubSup>`;
+        }
+        
+        if (node.type === 'PreSubSupNode') {
+            return `<m:sPre><m:sPrePr></m:sPrePr><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup><m:e>${renderOMML([node.base])}</m:e></m:sPre>`;
+        }
+        
         if (node.type === 'MatrixNode') {
             const table = `<m:m><m:mPr><m:baseJc m:val="center"/></m:mPr>${node.rows.map(r => `<m:mr><m:e>${renderOMML(r)}</m:e></m:mr>`).join('')}</m:m>`;
             if (node.env === 'p' || node.env === 'pmatrix') return `<m:d><m:dPr><m:begChr w:val="("/><m:endChr w:val=")"/></m:dPr><m:e>${table}</m:e></m:d>`;
             if (node.env === 'b' || node.env === 'bmatrix') return `<m:d><m:dPr><m:begChr w:val="["/><m:endChr w:val="]"/></m:dPr><m:e>${table}</m:e></m:d>`;
-            // ИСПРАВЛЕНО: Система уравнений для Word 2010 (Фигурная скобка слева, справа пусто)
             if (node.env === 'cases') return `<m:d><m:dPr><m:begChr w:val="{"/><m:endChr w:val=""/></m:dPr><m:e>${table}</m:e></m:d>`;
             return table;
-        }
-        // Добавьте обработку левых индексов (m:sPre) в функцию renderOMML:
-        if (node.type === 'PreSubSupNode') {
-            // Структура Word 2010 для индексов СЛЕВА от базы (m:sPre)
-            return `<m:sPre><m:sPrePr></m:sPrePr><m:sub>${renderOMML(node.sub)}</m:sub><m:sup>${renderOMML(node.sup)}</m:sup><m:e>${renderOMML([node.base])}</m:e></m:sPre>`;
-        }
-        if (node.type === 'PlainTextNode') {
-            // Исправлено: текст из \text{} принудительно оборачиваем в стандартный m:r/m:t
-            return `<m:r><m:t>${node.value}</m:t></m:r>`;
         }
         return '';
     }).join('');
