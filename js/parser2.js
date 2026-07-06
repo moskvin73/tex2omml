@@ -686,18 +686,18 @@ function renderMathML(nodes) {
 function renderOMML(nodes) {
     if (!nodes) return '';
     return nodes.map(node => {
-        if (node.type === 'TextNode' || node.type === 'GreekNode') {
-          let val = node.value;
-            
-            // Подменяем команду на Unicode символ
-            if (GreekUnicodeMap[val]) {
-                val = GreekUnicodeMap[val];
-            }
-
-            if (/^[A-Za-z]$/.test(val)) {
-                return `<m:r><m:t><i><span style='font-family:"Cambria Math","serif";mso-fareast-font-family:"Times New Roman";mso-bidi-font-family:"Times New Roman";'>${val}</span></i></m:t></m:r>`;
-            }
-            return `<m:r><m:t><span style='font-family:"Cambria Math","serif";'>${val}</span></m:t></m:r>`;
+        // Только VariableNode (латиница) получает тег курсива <i>
+        if (node.type === 'VariableNode') {
+            return `<m:r><m:t><i><span style='font-size:12.0pt;font-family:"Cambria Math","serif";...'>${node.value}</span></i></m:t></m:r>`;
+        }
+        
+        // Все остальные атомарные узлы выводятся строго ПРЯМЫМ шрифтом
+        if (node.type === 'MathSymbolNode' || 
+            node.type === 'NumberNode'     || 
+            node.type === 'OperatorNode'   || 
+            node.type === 'FunctionNode'   || 
+            node.type === 'PlainTextNode') {
+            return `<m:r><m:t><span style='font-family:"Cambria Math","serif";'>${node.value}</span></m:t></m:r>`;
         }
         if (node.type === 'GroupNode') return renderOMML(node.body);
         if (node.type === 'FractionNode') return `<m:f><m:num>${renderOMML(node.num)}</m:num><m:den>${renderOMML(node.den)}</m:den></m:f>`;
