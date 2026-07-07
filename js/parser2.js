@@ -1205,9 +1205,9 @@ function renderOMML(nodes) {
             let fPr = '';
             if (isSmall) {
                 // Комбинация мелкого стиля и уменьшенных параметров отображения для Word
-                fPr = `<m:fPr><m:sty m:val="scr"/><m:fType m:val="bar"/></m:fPr>`;
+                fPr = `<m:fPr><m:sty m:val="scr"/><m:tType m:val="bar"/></m:fPr>`;
             } else if (fType !== 'bar') {
-                fPr = `<m:fPr><m:fType m:val="${fType}"/></m:fPr>`;
+                fPr = `<m:fPr><m:type m:val="${fType}"/></m:fPr>`;
             }
 
             return `<m:f>` +
