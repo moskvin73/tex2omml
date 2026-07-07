@@ -53,25 +53,6 @@ function handleConvert() {
     document.getElementById('ommlCode').textContent = formatXML(currentOMML);
 }
 
-function copyWithOldApi(fullPayload) {
-    // Создаем невидимый элемент для копирования
-    const textarea = document.createElement('textarea');
-    textarea.value = fullPayload; // Записываем туда весь ваш "пирог" целиком
-    textarea.style.position = 'fixed'; // Избегаем прокрутки страницы
-    document.body.appendChild(textarea);
-    
-    textarea.select();
-    
-    try {
-        // Старый метод принудительно заталкивает строку как есть
-        document.execCommand('copy');
-        console.log('Успешно скопировано!');
-    } catch (err) {
-        console.error('Ошибка копирования:', err);
-    }
-    
-    document.body.removeChild(textarea);
-}
 
 async function handleCopyWord() {
     if (!currentOMML) {
@@ -117,9 +98,8 @@ xmlns="http://www.w3.org/TR/REC-html40">
 </body>
 </html>`.trim();
 
-copyWithOldApi(htmlPayload);
     
-   /* try {
+   try {
         const htmlBlob = new Blob([htmlPayload], { type: "text/html" });
         const textBlob = new Blob([currentOMML], { type: "text/plain" });
 
@@ -143,7 +123,7 @@ copyWithOldApi(htmlPayload);
     } catch (err) {
         console.error("Ошибка буфера: ", err);
         alert("Кликните по странице и попробуйте еще раз.");
-    }*/
+    }
 }
 
 function handleDownload() {
