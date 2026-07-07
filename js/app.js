@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=20';
+import { texToMathML, texToOMML } from './parser2.js?v=21';
 
 let currentOMML = "";
 
@@ -77,9 +77,7 @@ async function handleCopyWord() {
         // Встроенный режим (Inline): m:oMathPara ЗАПРЕЩЕН, пишем прямо в текстовый абзац MsoNormal
         formulaPayload = `
         <p class="MsoNormal">
-            <span style='font-size:11.0pt;font-family:"Calibri","sans-serif";'>Текст перед формулой </span>
             ${currentOMML}
-            <span style='font-size:11.0pt;font-family:"Calibri","sans-serif";'> текст после формулы.</span>
         </p>`;
     }     
 
