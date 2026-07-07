@@ -1205,17 +1205,11 @@ function renderOMML(nodes) {
               `</m:f></m:e></m:box>`;
             }
             let fType = 'bar'; 
-            let isSmall = false;
-
             if (node.subType === 'skewed') fType = 'skw'; // Диагональная дробь
             if (node.subType === 'linear') fType = 'lin'; // Линейная дробь
-            if (node.subType === 'small') isSmall = true;  
 
             let fPr = '';
-            if (isSmall) {
-                // Комбинация мелкого стиля и уменьшенных параметров отображения для Word
-                fPr = `<m:fPr><m:sty m:val="scr"/><m:type m:val="bar"/></m:fPr>`;
-            } else if (fType !== 'bar') {
+            if (fType !== 'bar') {
                 fPr = `<m:fPr><m:type m:val="${fType}"/></m:fPr>`;
             }
 
