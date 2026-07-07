@@ -760,7 +760,7 @@ class TeXParser {
     }
 
     // Б. Дробь \frac{числитель}{знаменатель}
-    if (cmdName === '\\frac' || cmdName === '\\dfrac' || cmdName === '\\tfrac' || cmdName === '\\sfrac') {
+    if (cmdName === '\\frac' || cmdName === '\\dfrac' || cmdName === '\\tfrac' || cmdName === '\\sfrac' || cmdName === '\\ldiv') {
       this.eat(TokenType.LBRACE);
       const num = this.parseGroupContent(); // Парсим числитель
       this.eat(TokenType.RBRACE);
@@ -774,6 +774,7 @@ class TeXParser {
       if (cmdName === '\\dfrac') subType = 'display'; // принудительно крупная
       if (cmdName === '\\tfrac') subType = 'small';   // маленькая простая дробь
       if (cmdName === '\\sfrac') subType = 'skewed';  // диагональная/косая дробь
+      if (cmdName === '\\sfrac') subType = 'linear'; 
 
       return { type: 'FractionNode', num: num, den: den, subType: subType };    
     }
