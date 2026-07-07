@@ -774,7 +774,7 @@ class TeXParser {
       if (cmdName === '\\dfrac') subType = 'display'; // принудительно крупная
       if (cmdName === '\\tfrac') subType = 'small';   // маленькая простая дробь
       if (cmdName === '\\sfrac') subType = 'skewed';  // диагональная/косая дробь
-      if (cmdName === '\\sfrac') subType = 'linear'; 
+      if (cmdName === '\\ldiv') subType = 'linear'; 
 
       return { type: 'FractionNode', num: num, den: den, subType: subType };    
     }
