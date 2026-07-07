@@ -67,12 +67,12 @@ async function handleCopyWord() {
     if (selectedMode === "block") {
         // Блочный режим: используем m:oMathPara с выравниванием по центру
         formulaPayload = `
-        <p class="MsoNormal" style="text-align:center;">
+        <div class="MsoEquation" style="text-align:center;">
         <m:oMathPara>
             <m:oMathParaPr><m:jc m:val="centerGroup"/></m:oMathParaPr>
             ${currentOMML}
         </m:oMathPara>
-        </p>`;
+        </div>`;
     } else {
         // Встроенный режим (Inline): m:oMathPara ЗАПРЕЩЕН, пишем прямо в текстовый абзац MsoNormal
         formulaPayload = `
