@@ -62,7 +62,7 @@ async function handleCopyWord() {
         // Получаем выбранный пользователем режим (block или inline)
     const selectedMode = document.querySelector('input[name="mathMode"]:checked').value;
 
-  /*  // Формируем тело документа в зависимости от режима
+    // Формируем тело документа в зависимости от режима
     let formulaPayload = "";
     if (selectedMode === "block") {
         // Блочный режим: используем m:oMathPara с выравниванием по центру
@@ -101,63 +101,8 @@ xmlns="http://www.w3.org/TR/REC-html40">
     <![endif]-->
     <!--EndFragment-->
 </body>
-</html>`.trim();*/
-
-        let formulaPayload = "";
-        if (selectedMode === "block") {
-            // Блочный режим: используем класс MsoEquation и контейнер m:oMathPara.
-            // ВАЖНО: Никаких пробелов и переносов строк между m:oMathPara и currentOMML быть не должно!
-            formulaPayload = `<p class="MsoEquation"><m:oMathPara><m:oMathParaPr><m:jc m:val="centerGroup"/></m:oMathParaPr>${currentOMML.trim()}</m:oMathPara></p>`;
-        } else {
-            // Встроенный режим (Inline): m:oMathPara ЗАПРЕЩЕН, пишем прямо в текстовый абзац MsoNormal
-            formulaPayload = `
-            <p class="MsoNormal">
-                <span style='font-size:11.0pt;font-family:"Calibri","sans-serif";'>Текст перед формулой </span>
-                ${currentOMML.trim()}
-                <span style='font-size:11.0pt;font-family:"Calibri","sans-serif";'> текст после формулы.</span>
-            </p>`;
-        }    
-
-        // 2. Формируем финальный HTML-кокон для буфера обмена Word 2010
-        const htmlPayload = `
-<html xmlns:o="urn:schemas-microsoft-com:office:office"
-xmlns:w="urn:schemas-microsoft-com:office:word"
-xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
-xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<meta name="ProgId" content="Word.Document">
-<meta name="Generator" content="Microsoft Word 14">
-<!--[if gte mso 9]><xml>
- <w:WordDocument>
-  <w:View>Normal</w:View>
- </w:WordDocument>
-</xml><![endif]-->
-<style>
-<!--
-/* Обязательные стили абзацев для парсера Word */
-p.MsoNormal, li.MsoNormal, div.MsoNormal {
-    margin: 0cm;
-    margin-bottom: .0001pt;
-    font-size: 11.0pt;
-    font-family: "Calibri","sans-serif";
-}
-p.MsoEquation, li.MsoEquation, div.MsoEquation {
-    margin: 0cm;
-    margin-bottom: .0001pt;
-    text-align: center;
-    font-size: 11.0pt;
-    font-family: "Calibri","sans-serif";
-}
--->
-</style>
-</head> 
-<body>
-    <!--StartFragment-->
-    ${formulaPayload}
-    <!--EndFragment-->
-</body>
 </html>`.trim();
+
 
     try {
         const htmlBlob = new Blob([htmlPayload], { type: "text/html" });
