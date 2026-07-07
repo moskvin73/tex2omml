@@ -1198,6 +1198,12 @@ function renderOMML(nodes) {
         if (node.type === 'SeparatorNode')  return '';
         if (node.type === 'GroupNode') return renderOMML(node.body);
         if (node.type === 'FractionNode')  {
+            if (node.subType === 'small') {
+              return `<m:box><m:e><m:argPr><m:argSz m:val="-1"/></m:argPr><m:f>` +
+                  `<m:num>${renderOMML(node.num)}</m:num>` +
+                  `<m:den>${renderOMML(node.den)}</m:den>` +
+              `</m:f></m:e></m:box>`;
+            }
             let fType = 'bar'; 
             let isSmall = false;
 
