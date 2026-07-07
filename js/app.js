@@ -91,7 +91,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="ProgId" content="Word.Document">
 <meta name="Generator" content="Microsoft Word 14">
-</head>
+</head> 
 <body>
     <!--StartFragment-->
     <!--[if gte msEquation 12]>
