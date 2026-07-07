@@ -1352,11 +1352,11 @@ export function texToMathML(tex) {
             
         // 2. Инициализируем парсер и строим AST-дерево
         const parser = new TeXParser(lexer, errorCollector);
-        const ast = parser.parse();
+        const ast = parser.parse(); 
 
         // const tokens = tokenize(tex); const parser = new TeXParser(tokens); const ast = parser.parse();
         //return `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">${renderMathML(ast)}</math>`;
-        return `<math xmlns="http://www.w3.org/1998/Math/MathML">${renderMathML(ast)}</math>`;
+        return `<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline">${renderMathML(ast)}</math>`;
     } catch (e) { return `<span style="color:red;">Ошибка MathML: ${e.message}</span>`; }
 }
 
