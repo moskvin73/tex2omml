@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=31';
+import { texToMathML, texToOMML } from './parser2.js?v=32';
 
 let currentOMML = "";
 
@@ -98,23 +98,54 @@ xmlns="http://www.w3.org/TR/REC-html40">
 </body>
 </html>`.trim();
 
+try {
+    // 1. Создаем временный обработчик события 'copy'
+    const copyHandler = (e) => {
+        // Очищаем стандартное поведение браузера
+        e.preventDefault();
+        
+        // Записываем ваши данные "как есть". Браузер НЕ будет ничего оборачивать!
+        e.clipboardData.setData('text/html', htmlPayload);
+        e.clipboardData.setData('text/plain', currentOMML);
+    };
+
+    // 2. Вешаем обработчик на документ
+    document.addEventListener('copy', copyHandler);
+
+    // 3. Вызываем системную команду копирования (она триггерит наш обработчик)
+    const success = document.execCommand('copy');
+
+    // 4. Сразу удаляем обработчик, чтобы он не мешал обычному копированию на сайте
+    document.removeEventListener('copy', copyHandler);
+
+    // Если команда выполнилась успешно, запускаем вашу анимацию кнопки
+    if (success) {
+        const btn = document.getElementById('btnCopyWord');
+        btn.textContent = "✓ Успешно скопировано!";
+        btn.style.backgroundColor = "#107c41";
+        
+        setTimeout(() => {
+            btn.textContent = "Скопировано для Word (Ctrl+V)";
+            btn.style.backgroundColor = "#217346";
+        }, 2000);
+    } else {
+        throw new Error("execCommand('copy') вернул false");
+    }
+
+} catch (err) {
+    console.error("Ошибка буфера: ", err);
+    alert("Кликните по странице и попробуйте еще раз.");
+}
     
-   try {
+   /*try {
         const htmlBlob = new Blob([htmlPayload], { type: "text/html" });
         const textBlob = new Blob([currentOMML], { type: "text/plain" });
 
-        /*const data = [new ClipboardItem({ 
+        const data = [new ClipboardItem({ 
             "text/html": htmlBlob,
             "text/plain": textBlob
-        })];*/
+        })];
 
-    const data = [new ClipboardItem({ 
-        "text/html": htmlBlob,
-        "text/plain": textBlob
-    }, {
-        // Ключевой параметр: запрещаем браузеру пересобирать HTML структуру
-        unsanitized: ["text/html"] 
-    })];        
         
         await navigator.clipboard.write(data);
         
@@ -131,7 +162,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
     } catch (err) {
         console.error("Ошибка буфера: ", err);
         alert("Кликните по странице и попробуйте еще раз.");
-    }
+    }*/
 }
 
 function handleDownload() {
