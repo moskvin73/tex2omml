@@ -74,8 +74,7 @@ async function handleCopyWord() {
         </p>`;
     } else {
         // Встроенный режим (Inline): m:oMathPara ЗАПРЕЩЕН, пишем прямо в текстовый абзац MsoNormal
-        formulaPayload = `
-        <p class="MsoNormal">
+        formulaPayload = `<p class="MsoNormal">
             ${currentOMML}
         </p>`;
     }     
