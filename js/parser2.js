@@ -1058,7 +1058,7 @@ function wrapInMrowIfNeeded(nodes) {
     return `<mrow>${rendered}</mrow>`;
 }
 
-// 3. ГЕНЕРАТОРЫ КОДА
+// ГЕНЕРАТОРЫ КОДА MathML
 function renderMathML(nodes) {
     if (!nodes) return '';
     
@@ -1081,16 +1081,15 @@ function renderMathML(nodes) {
         if (node.type === 'FractionNode') {
             let attributes = '';
             
-            // Настройка MathML под разные типы TeX-дробей
             if (node.subType === 'skewed') {
-                attributes = ' bevelled="true"'; // Превращает горизонтальную дробь в диагональную /
+                attributes = ' bevelled="true"'; // Косая диагональная дробь
             } else if (node.subType === 'small') {
-                attributes = ' mathsize="small"';   // Уменьшает масштаб для \tfrac
+                attributes = ' scriptlevel="1" DISPLAYSTYLE="false"'; // Принудительно уменьшает \tfrac в MathML Core
             } else if (node.subType === 'display') {
-                attributes = ' displaystyle="true"'; // Делает крупной \dfrac в любом окружении
+                attributes = ' displaystyle="true"'; // Крупная \dfrac
             }
 
-            return `<mfrac${attributes}>${wrapInMrowIfNeeded(node.num)}${wrapInMrowIfNeeded(node.den)}</mfrac>`;          
+            return `<mfrac${attributes}>${wrapInMrowIfNeeded(node.num)}${wrapInMrowIfNeeded(node.den)}</mfrac>`;         
             //return `<mfrac>${wrapInMrowIfNeeded(node.num)}${wrapInMrowIfNeeded(node.den)}</mfrac>`;
         }
         
@@ -1176,6 +1175,7 @@ function renderMathML(nodes) {
 }
 
 
+// ГЕНЕРАТОРЫ КОДА OMML
 function renderOMML(nodes) {
     if (!nodes) return '';
     return nodes.map(node => {
@@ -1195,23 +1195,21 @@ function renderOMML(nodes) {
         if (node.type === 'SeparatorNode')  return '';
         if (node.type === 'GroupNode') return renderOMML(node.body);
         if (node.type === 'FractionNode')  {
-             let fType = 'bar'; // По умолчанию обычная горизонтальная
+           let fType = 'bar'; 
             let isSmall = false;
 
-            if (node.subType === 'skewed') fType = 'skw'; // диагональная дробь
-            if (node.subType === 'linear') fType = 'lin'; // линейная дробь
-            if (node.subType === 'small') isSmall = true;  // \tfrac
+            if (node.subType === 'skewed') fType = 'skw'; // Диагональная дробь
+            if (node.subType === 'linear') fType = 'lin'; // Линейная дробь
+            if (node.subType === 'small') isSmall = true;  
 
-            // Собираем свойства дроби со строгим порядком тегов (сначала стиль, потом тип)
             let fPr = '';
             if (isSmall) {
+                // Комбинация мелкого стиля и уменьшенных параметров отображения для Word
                 fPr = `<m:fPr><m:sty m:val="scr"/><m:fType m:val="bar"/></m:fPr>`;
             } else if (fType !== 'bar') {
-                // Если тип отличается от стандартного bar (например, skw или lin), добавляем свойства
                 fPr = `<m:fPr><m:fType m:val="${fType}"/></m:fPr>`;
             }
 
-            // Возвращаем строго вашу рабочую структуру элементов <m:num> и <m:den> без лишних <m:e>
             return `<m:f>` +
                 fPr +
                 `<m:num>${renderOMML(node.num)}</m:num>` +
