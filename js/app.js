@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=30';
+import { texToMathML, texToOMML } from './parser2.js?v=31';
 
 let currentOMML = "";
 
@@ -103,10 +103,18 @@ xmlns="http://www.w3.org/TR/REC-html40">
         const htmlBlob = new Blob([htmlPayload], { type: "text/html" });
         const textBlob = new Blob([currentOMML], { type: "text/plain" });
 
-        const data = [new ClipboardItem({ 
+        /*const data = [new ClipboardItem({ 
             "text/html": htmlBlob,
             "text/plain": textBlob
-        })];
+        })];*/
+
+    const data = [new ClipboardItem({ 
+        "text/html": htmlBlob,
+        "text/plain": textBlob
+    }, {
+        // Ключевой параметр: запрещаем браузеру пересобирать HTML структуру
+        unsanitized: ["text/html"] 
+    })];        
         
         await navigator.clipboard.write(data);
         
