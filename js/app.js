@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=24';
+import { texToMathML, texToOMML } from './parser2.js?v=25';
 
 let currentOMML = "";
 
@@ -82,7 +82,7 @@ async function handleCopyWord() {
     }     
 
     // Добавляем глобальные стили для Word: Cambria Math, курсив, размер 12pt
-    const htmlPayload = `
+    /*const htmlPayload = `
 <html xmlns:o="urn:schemas-microsoft-com:office:office"
 xmlns:w="urn:schemas-microsoft-com:office:word"
 xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
@@ -99,7 +99,25 @@ xmlns="http://www.w3.org/TR/REC-html40">
     <![endif]-->
     <!--EndFragment-->
 </body>
+</html>`.trim();*/
+
+    const htmlPayload = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
+xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="Microsoft Word 14">
+</head> 
+<body>
+    <!--[if gte msEquation 12]>
+    ${formulaPayload}
+    <![endif]-->
+</body>
 </html>`.trim();
+    
     
 
     try {
