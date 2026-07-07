@@ -1195,7 +1195,7 @@ function renderOMML(nodes) {
         if (node.type === 'SeparatorNode')  return '';
         if (node.type === 'GroupNode') return renderOMML(node.body);
         if (node.type === 'FractionNode')  {
-           let fType = 'bar'; 
+            let fType = 'bar'; 
             let isSmall = false;
 
             if (node.subType === 'skewed') fType = 'skw'; // Диагональная дробь
