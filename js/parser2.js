@@ -1182,7 +1182,8 @@ function renderOMML(nodes) {
         // Только VariableNode (латиница) получает тег курсива <i>
         if (node.type === 'VariableNode' || 
             node.type === 'MathSymbolNode') {
-            return `<m:r><m:t><i><span style='font-family:"Cambria Math","serif";'>${node.value}</span></i></m:t></m:r>`;
+              return `<i><m:r>${node.value}</m:r></i>`;
+            //return `<m:r><m:t><i><span style='font-family:"Cambria Math","serif";'>${node.value}</span></i></m:t></m:r>`;
         }
         
         // Все остальные атомарные узлы выводятся строго ПРЯМЫМ шрифтом
@@ -1190,7 +1191,8 @@ function renderOMML(nodes) {
             node.type === 'OperatorNode'   || 
             node.type === 'FunctionNode'   || 
             node.type === 'PlainTextNode') {
-            return `<m:r><m:t><span style='font-family:"Cambria Math","serif";'>${node.value}</span></m:t></m:r>`;
+            return `<m:r>${node.value}</m:r>`;
+            //return `<m:r><m:t><span style='font-family:"Cambria Math","serif";'>${node.value}</span></m:t></m:r>`;
         }
         if (node.type === 'SeparatorNode')  return '';
         if (node.type === 'GroupNode') return renderOMML(node.body);
