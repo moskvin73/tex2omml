@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=23';
+import { texToMathML, texToOMML } from './parser2.js?v=24';
 
 let currentOMML = "";
 
@@ -66,29 +66,23 @@ async function handleCopyWord() {
     let formulaPayload = "";
     if (selectedMode === "block") {
         // Блочный режим: используем m:oMathPara с выравниванием по центру
-        /*formulaPayload = `
-        <div class="MsoEquation" style="text-align:center;">
+        formulaPayload = `
+        <p class="MsoEquation" style="text-align:center;">
         <m:oMathPara>
             <m:oMathParaPr><m:jc m:val="centerGroup"/></m:oMathParaPr>
             ${currentOMML}
         </m:oMathPara>
-        </div>`;*/
-        formulaPayload = `<p class="MsoNormal"><!--[if gte msEquation 12]><m:oMathPara><m:oMathParaPr><m:jc m:val="centerGroup"/></m:oMathParaPr>${currentOMML.trim()}</m:oMathPara><![endif]--><o:p></o:p></p>`;
+        </p>`;
     } else {
         // Встроенный режим (Inline): m:oMathPara ЗАПРЕЩЕН, пишем прямо в текстовый абзац MsoNormal
-        /*formulaPayload = `
+        formulaPayload = `
         <p class="MsoNormal">
             ${currentOMML}
-        </p>`;*/
-    formulaPayload = `
-    <p class="MsoNormal">
-        <!--[if gte msEquation 12]>${currentOMML.trim()}<![endif]-->
-        <o:p></o:p>
-    </p>`;        
+        </p>`;
     }     
 
     // Добавляем глобальные стили для Word: Cambria Math, курсив, размер 12pt
-    /*const htmlPayload = `
+    const htmlPayload = `
 <html xmlns:o="urn:schemas-microsoft-com:office:office"
 xmlns:w="urn:schemas-microsoft-com:office:word"
 xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
@@ -105,24 +99,8 @@ xmlns="http://www.w3.org/TR/REC-html40">
     <![endif]-->
     <!--EndFragment-->
 </body>
-</html>`.trim();*/
-    
-const htmlPayload = `
-<html xmlns:o="urn:schemas-microsoft-com:office:office"
-xmlns:w="urn:schemas-microsoft-com:office:word"
-xmlns:m="http://microsoft.com"
-xmlns="http://w3.org">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<meta name="ProgId" content="Word.Document">
-<meta name="Generator" content="Microsoft Word 14">
-</head> 
-<body>
-    <!--StartFragment-->
-    ${formulaPayload.trim()}
-    <!--EndFragment-->
-</body>
 </html>`.trim();
+    
 
     try {
         const htmlBlob = new Blob([htmlPayload], { type: "text/html" });
