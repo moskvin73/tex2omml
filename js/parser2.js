@@ -1346,16 +1346,8 @@ function renderOMML(nodes) {
 export function texToMathML(tex) {
     try {
 
-      const lexer = new TeXLexer(tex);
- console.log("Сырые токены из лексера:", lexer.tokenize()); 
-    
-    // Сбрасываем курсор лексера обратно в 0 после отладочного tokenize()
-    lexer.cursor = 0; 
-    lexer.currentLine = 1;
-    lexer.currentColumn = 1;
-
         // 1. Создаем лексер и сборщик ошибок (в режиме мгновенного падения)
-        //const lexer = new TeXLexer(tex);
+        const lexer = new TeXLexer(tex);
         const errorCollector = new TeXErrorCollector('failFast');
             
         // 2. Инициализируем парсер и строим AST-дерево
@@ -1363,7 +1355,8 @@ export function texToMathML(tex) {
         const ast = parser.parse();
 
         // const tokens = tokenize(tex); const parser = new TeXParser(tokens); const ast = parser.parse();
-        return `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">${renderMathML(ast)}</math>`;
+        //return `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">${renderMathML(ast)}</math>`;
+        return `<math xmlns="http://www.w3.org/1998/Math/MathML">${renderMathML(ast)}</math>`;
     } catch (e) { return `<span style="color:red;">Ошибка MathML: ${e.message}</span>`; }
 }
 
