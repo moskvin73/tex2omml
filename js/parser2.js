@@ -1083,7 +1083,7 @@ function renderMathML(nodes) {
             let attributes = '';
             
             if (node.subType === 'skewed') {
-              retuen `<msubsup><mo>&#x2044;</mo>${wrapInMrowIfNeeded(node.num)}${wrapInMrowIfNeeded(node.den)}</msubsup>`
+              return `<msubsup><mo>&#x2044;</mo>${wrapInMrowIfNeeded(node.num)}${wrapInMrowIfNeeded(node.den)}</msubsup>`
                 //attributes = ' bevelled="true"'; // Косая диагональная дробь
             } else if (node.subType === 'small') {
                 attributes = ' scriptlevel="1" DISPLAYSTYLE="false"'; // Принудительно уменьшает \tfrac в MathML Core
