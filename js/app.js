@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=48';
+import { texToMathML, texToOMML } from './parser2.js?v=49';
 
 let currentOMML = ""; 
 
@@ -64,7 +64,7 @@ async function handleCopyWord() {
     const selectedMode = document.querySelector('input[name="mathMode"]:checked').value;
 
     // Формируем тело документа в зависимости от режима
-    let formulaPayload = `<m:oMathPara>${currentOMML}</m:oMathPara>`;
+    let formulaPayload = `${currentOMML}`;
     let mathPrFmt="";
 
    if (selectedMode === "block") {
@@ -76,7 +76,7 @@ async function handleCopyWord() {
   </m:mathPr>
  </w:WordDocument>
 </xml><![endif]-->`;
-    formulaPayload=`<p class="MsoNormal">${formulaPayload}</p>`;
+    formulaPayload=`<p class="MsoNormal"><m:oMathPara>${formulaPayload}</m:oMathPara></p>`;
    }
 
 
@@ -92,7 +92,8 @@ xmlns="http://www.w3.org/TR/REC-html40">
 <meta name="Generator" content="Microsoft Word 14">
 ${mathPrFmt}
 </head> 
-<body><!--[if gte msEquation 12]>${formulaPayload}<![endif]--></body></html>`.trim();
+<body><!--[if gte msEquation 12]>${formulaPayload}<![endif]--></body>
+</html>`.trim();
 
     
    try {
