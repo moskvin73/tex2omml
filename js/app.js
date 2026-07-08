@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=50';
+import { texToMathML, texToOMML } from './parser2.js?v=51';
 
 let currentOMML = ""; 
 
@@ -68,14 +68,16 @@ async function handleCopyWord() {
     let mathPrFmt="";
 
    if (selectedMode === "block") {
-    mathPrFmt = `<!--[if gte mso 9]><xml>
+    mathPrFmt = `
+<!--[if gte mso 9]><xml>
 <w:WordDocument>
   <w:View>Normal</w:View>
   <m:mathPr>
    <m:defJc m:val="centerGroup"/>
   </m:mathPr>
  </w:WordDocument>
-</xml><![endif]-->`;
+</xml><![endif]-->
+`;
     formulaPayload=`<p class="MsoNormal"><m:oMathPara>${formulaPayload}</m:oMathPara></p>`;
    }
 
@@ -89,9 +91,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="ProgId" content="Word.Document">
-<meta name="Generator" content="Microsoft Word 14">
-${mathPrFmt}
-</head> 
+<meta name="Generator" content="Microsoft Word 14">${mathPrFmt}</head> 
 <body><!--[if gte msEquation 12]>${formulaPayload}<![endif]--></body></html>`.trim();
 
     
