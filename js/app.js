@@ -78,7 +78,6 @@ async function handleCopyWord() {
  <w:WordDocument>
   <w:View>Normal</w:View>
   <m:mathPr>
-   <m:mathFont m:val="Cambria Math"/>
    <m:defJc m:val="centerGroup"/>
   </m:mathPr>
  </w:WordDocument>
