@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=46';
+import { texToMathML, texToOMML } from './parser2.js?v=47';
 
 let currentOMML = ""; 
 
@@ -64,24 +64,19 @@ async function handleCopyWord() {
     const selectedMode = document.querySelector('input[name="mathMode"]:checked').value;
 
     // Формируем тело документа в зависимости от режима
-    let formulaPayload = "";
-   /* if (selectedMode === "block") {
-        // Блочный режим: используем m:oMathPara с выравниванием по центру
-        formulaPayload = `<p class="MsoNormal""><m:oMathPara>${currentOMML}</m:oMathPara><o:p></o:p></p>`;
-    } else {
-        // Встроенный режим (Inline): m:oMathPara ЗАПРЕЩЕН, пишем прямо в текстовый абзац MsoNormal
-        formulaPayload = `<p class="MsoNormal">${currentOMML}<o:p></o:p></p>`;
-    } */
+    let formulaPayload = `<m:oMathPara>${currentOMML}</m:oMathPara>`;
+    let mathPrFmt="";
 
    if (selectedMode === "block") {
-    formulaPayload = `<!--[if gte mso 9]><xml>
- <w:WordDocument>
+    mathPrFmt = `<!--[if gte mso 9]><xml>
+<w:WordDocument>
   <w:View>Normal</w:View>
   <m:mathPr>
    <m:defJc m:val="centerGroup"/>
   </m:mathPr>
  </w:WordDocument>
 </xml><![endif]-->`;
+    formulaPayload=`<p class="MsoNormal">${formulaPayload}</p>`;
    }
 
 
@@ -95,11 +90,11 @@ xmlns="http://www.w3.org/TR/REC-html40">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="ProgId" content="Word.Document">
 <meta name="Generator" content="Microsoft Word 14">
-${formulaPayload}
+${mathPrFmt}
 </head> 
 <body>
     <!--[if gte msEquation 12]>
-    <p class="MsoNormal"><m:oMathPara>${currentOMML}</m:oMathPara></p>
+    ${formulaPayload}
     <![endif]-->
 </body>
 </html>`.trim();
