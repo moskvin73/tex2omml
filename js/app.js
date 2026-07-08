@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=37';
+import { texToMathML, texToOMML } from './parser2.js?v=38';
 
 let currentOMML = ""; 
 
@@ -65,13 +65,26 @@ async function handleCopyWord() {
 
     // Формируем тело документа в зависимости от режима
     let formulaPayload = "";
-    if (selectedMode === "block") {
+   /* if (selectedMode === "block") {
         // Блочный режим: используем m:oMathPara с выравниванием по центру
         formulaPayload = `<p class="MsoNormal""><m:oMathPara>${currentOMML}</m:oMathPara><o:p></o:p></p>`;
     } else {
         // Встроенный режим (Inline): m:oMathPara ЗАПРЕЩЕН, пишем прямо в текстовый абзац MsoNormal
         formulaPayload = `<p class="MsoNormal">${currentOMML}<o:p></o:p></p>`;
-    }     
+    } */
+
+   if (selectedMode === "block") {
+    formulaPayload = `<!--[if gte mso 9]><xml>
+ <w:WordDocument>
+  <w:View>Normal</w:View>
+  <m:mathPr>
+   <m:mathFont m:val="Cambria Math"/>
+   <m:defJc m:val="centerGroup"/>
+  </m:mathPr>
+ </w:WordDocument>
+</xml><![endif]-->`;
+   }
+
 
     // Добавляем глобальные стили для Word: Cambria Math, курсив, размер 12pt
     const htmlPayload = `
@@ -83,19 +96,11 @@ xmlns="http://www.w3.org/TR/REC-html40">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="ProgId" content="Word.Document">
 <meta name="Generator" content="Microsoft Word 14">
-<!--[if gte mso 9]><xml>
- <w:WordDocument>
-  <w:View>Normal</w:View>
-  <m:mathPr>
-   <m:mathFont m:val="Cambria Math"/>
-   <m:defJc m:val="centerGroup"/>
-  </m:mathPr>
- </w:WordDocument>
-</xml><![endif]-->
+${formulaPayload}
 </head> 
 <body>
     <!--[if gte msEquation 12]>
-    ${formulaPayload}
+    <p class="MsoNormal""><m:oMathPara>${currentOMML}</m:oMathPara><o:p></o:p></p>
     <![endif]-->
 </body>
 </html>`.trim();
