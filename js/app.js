@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=33';
+import { texToMathML, texToOMML } from './parser2.js?v=34';
 
 let currentOMML = ""; 
 
@@ -67,7 +67,7 @@ async function handleCopyWord() {
     let formulaPayload = "";
     if (selectedMode === "block") {
         // Блочный режим: используем m:oMathPara с выравниванием по центру
-        formulaPayload = `<p class="MsoEquation" style="text-align:center;">
+        formulaPayload = `<p class="MsoEquation" style="display: block; text-align:center;">
         <m:oMathPara>
             <m:oMathParaPr><m:jc m:val="centerGroup"/></m:oMathParaPr>
             ${currentOMML}
