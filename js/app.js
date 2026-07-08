@@ -1,7 +1,7 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
 import { texToMathML, texToOMML } from './parser2.js?v=33';
 
-let currentOMML = "";
+let currentOMML = ""; 
 
 function formatXML(xml) {
     // 1. Убираем уже существующие случайные переносы и лишние пробелы между тегами
