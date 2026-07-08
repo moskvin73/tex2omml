@@ -70,9 +70,7 @@ async function handleCopyWord() {
         formulaPayload = `<p class="MsoNormal""><m:oMathPara>${currentOMML}</m:oMathPara><o:p></o:p></p>`;
     } else {
         // Встроенный режим (Inline): m:oMathPara ЗАПРЕЩЕН, пишем прямо в текстовый абзац MsoNormal
-        formulaPayload = `<p>
-            ${currentOMML}
-        </p>`;
+        formulaPayload = `<p class="MsoNormal">${currentOMML}<o:p></o:p></p>`;
     }     
 
     // Добавляем глобальные стили для Word: Cambria Math, курсив, размер 12pt
