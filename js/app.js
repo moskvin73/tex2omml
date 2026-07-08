@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=49';
+import { texToMathML, texToOMML } from './parser2.js?v=50';
 
 let currentOMML = ""; 
 
@@ -92,8 +92,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
 <meta name="Generator" content="Microsoft Word 14">
 ${mathPrFmt}
 </head> 
-<body><!--[if gte msEquation 12]>${formulaPayload}<![endif]--></body>
-</html>`.trim();
+<body><!--[if gte msEquation 12]>${formulaPayload}<![endif]--></body></html>`.trim();
 
     
    try {
