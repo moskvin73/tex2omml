@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=35';
+import { texToMathML, texToOMML } from './parser2.js?v=36';
 
 let currentOMML = ""; 
 
@@ -67,12 +67,7 @@ async function handleCopyWord() {
     let formulaPayload = "";
     if (selectedMode === "block") {
         // Блочный режим: используем m:oMathPara с выравниванием по центру
-        formulaPayload = `<div style="display: block; text-align:center;">
-        <m:oMathPara>
-            <m:oMathParaPr><m:jc m:val="centerGroup"/></m:oMathParaPr>
-            ${currentOMML}
-        </m:oMathPara>
-        </div>`;
+        formulaPayload = `<p class="MsoNormal""><m:oMathPara>${currentOMML}</m:oMathPara><o:p></o:p></p>`;
     } else {
         // Встроенный режим (Inline): m:oMathPara ЗАПРЕЩЕН, пишем прямо в текстовый абзац MsoNormal
         formulaPayload = `<p>
@@ -90,6 +85,15 @@ xmlns="http://www.w3.org/TR/REC-html40">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="ProgId" content="Word.Document">
 <meta name="Generator" content="Microsoft Word 14">
+<!--[if gte mso 9]><xml>
+ <w:WordDocument>
+  <w:View>Normal</w:View>
+  <m:mathPr>
+   <m:mathFont m:val="Cambria Math"/>
+   <m:defJc m:val="centerGroup"/>
+  </m:mathPr>
+ </w:WordDocument>
+</xml><![endif]-->
 </head> 
 <body>
     <!--[if gte msEquation 12]>
