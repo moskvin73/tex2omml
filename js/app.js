@@ -99,8 +99,7 @@ ${formulaPayload}
 </head> 
 <body>
     <!--[if gte msEquation 12]>
-    <p>
-    ${currentOMML}</p>
+    <p class="MsoNormal"><m:oMathPara>${currentOMML}</m:oMathPara></p>
     <![endif]-->
 </body>
 </html>`.trim();
