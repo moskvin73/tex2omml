@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=38';
+import { texToMathML, texToOMML } from './parser2.js?v=39';
 
 let currentOMML = ""; 
 
