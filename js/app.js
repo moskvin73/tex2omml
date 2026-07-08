@@ -1,5 +1,5 @@
 //import { texToMathML, texToOMML } from './parser.js?v=18';
-import { texToMathML, texToOMML } from './parser2.js?v=43';
+import { texToMathML, texToOMML } from './parser2.js?v=44';
 
 let currentOMML = ""; 
 
@@ -99,7 +99,7 @@ ${formulaPayload}
 </head> 
 <body>
     <!--[if gte msEquation 12]>
-    <p><m:oMathPara>${currentOMML}</m:oMathPara></p>
+    <p>${currentOMML}</p>
     <![endif]-->
 </body>
 </html>`.trim();
